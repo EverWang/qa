@@ -1,0 +1,113 @@
+# Dependencies
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Build outputs
+build/
+dist/
+out/
+*/build/
+*/dist/
+*/out/
+**/build/
+**/dist/
+**/out/
+
+# Version control
+.git/
+.gitignore
+
+# IDE and tools
+.trae/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+*/logs/
+**/logs/
+
+# Backend server (Golang) - 完全排除
+server/
+*.exe
+*.bin
+*.go
+go.sum
+go.mod
+go.work
+go.work.sum
+
+# Documentation and assets - 排除大文件
+*.doc
+*.docx
+*.pdf
+*.zip
+*.rar
+*.tar.gz
+*.7z
+*.dmg
+*.iso
+
+# Environment files
+.env*
+
+# Cache and temporary
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+*/cache/
+**/cache/
+tmp/
+temp/
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
+
+# Source maps (大文件)
+*.map
+*.js.map
+*.css.map
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Storybook
+storybook-static/
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Webpack
+.webpack/
+
+# Vite
+vite.config.*.timestamp-*
+
+# 小程序相关大文件
+miniprogram/unpackage/
+miniprogram/platforms/
+
+# 管理端相关大文件
+admin-web/node_modules/
+admin-web/dist/
+admin-web/build/

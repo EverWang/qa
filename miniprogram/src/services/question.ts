@@ -1,0 +1,436 @@
+import { apiClient } from './api'
+import type { ApiResponse, PaginatedResponse } from './api'
+
+// 题目难度枚举
+export enum QuestionDifficulty {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard'
+}
+
+// 题目类型枚举
+export enum QuestionType {
+  SINGLE_CHOICE = 'single_choice',
+  MULTIPLE_CHOICE = 'multiple_choice',
+  TRUE_FALSE = 'true_false',
+  FILL_BLANK = 'fill_blank',
+  ESSAY = 'essay'
+}
+
+// 选项接口
+export interface QuestionOption {
+  id: string
+  content: string
+  isCorrect: boolean
+}
+
+// 题目接口
+export interface Question {
+  id: number
+  title: string
+  content: string
+  type: QuestionType
+  difficulty: QuestionDifficulty
+  options: QuestionOption[]
+  correctAnswer: string | string[]
+  explanation: string
+  categoryId: number
+  categoryName: string
+  tags: string[]
+  createdAt: string
+  updatedAt: string
+  // 用户相关字段
+  isAnswered?: boolean
+  userAnswer?: string | string[]
+  isCorrect?: boolean
+  answeredAt?: string
+}
+
+// 分类接口
+export interface Category {
+  id: number
+  name: string
+  description: string
+  parentId?: number
+  level: number
+  questionCount: number
+  icon?: string
+  color?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// 答题记录接口
+export interface AnswerRecord {
+  id: number
+  questionId: number
+  userId: number
+  userAnswer: string | string[]
+  isCorrect: boolean
+  timeSpent: number // 秒
+  answeredAt: string
+  question?: Question
+}
+
+// 错题本接口
+export interface MistakeBook {
+  id: number
+  questionId: number
+  userId: number
+  addedAt: string
+  reviewCount: number
+  lastReviewAt?: string
+  isMastered: boolean
+  question?: Question
+}
+
+// 搜索参数接口
+export interface QuestionSearchParams {
+  keyword?: string
+  categoryId?: number
+  difficulty?: QuestionDifficulty
+  type?: QuestionType
+  tags?: string[]
+  page?: number
+  pageSize?: number
+  sortBy?: 'created_at' | 'difficulty' | 'random'
+  sortOrder?: 'asc' | 'desc'
+}
+
+// 答题请求接口
+export interface SubmitAnswerRequest {
+  questionId: number
+  userAnswer: string | string[]
+  timeSpent: number
+}
+
+// 题目服务
+export class QuestionService {
+  // 获取题目列表
+  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
+    return apiClient.get<PaginatedResponse<Question>>('/questions', params)
+  }
+
+  // 获取题目详情
+  static async getQuestion(id: number): Promise<ApiResponse<Question>> {
+    return apiClient.get<Question>(`/questions/${id}`)
+  }
+
+  // 搜索题目
+  static async searchQuestions(params: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
+    return apiClient.get<PaginatedResponse<Question>>('/questions/search', params)
+  }
+
+  // 获取随机题目
+  static async getRandomQuestions(count: number, categoryId?: number, difficulty?: QuestionDifficulty): Promise<ApiResponse<Question[]>> {
+    return apiClient.get<Question[]>('/questions/random', {
+      count,
+      categoryId,
+      difficulty
+    })
+  }
+
+  // 提交答案
+  static async submitAnswer(data: SubmitAnswerRequest): Promise<ApiResponse<AnswerRecord>> {
+    return apiClient.post<AnswerRecord>('/questions/answer', data)
+  }
+
+  // 获取题目统计
+  static async getQuestionStats(questionId: number): Promise<ApiResponse<{
+    totalAnswers: number
+    correctAnswers: number
+    correctRate: number
+    averageTime: number
+  }>> {
+    return apiClient.get(`/questions/${questionId}/stats`)
+  }
+
+  // 获取分类列表
+  static async getCategories(parentId?: number): Promise<ApiResponse<Category[]>> {
+    return apiClient.get<Category[]>('/categories', { parentId })
+  }
+
+  // 获取分类详情
+  static async getCategory(id: number): Promise<ApiResponse<Category>> {
+    return apiClient.get<Category>(`/categories/${id}`)
+  }
+
+  // 获取分类下的题目
+  static async getCategoryQuestions(categoryId: number, params?: Omit<QuestionSearchParams, 'categoryId'>): Promise<ApiResponse<PaginatedResponse<Question>>> {
+    return apiClient.get<PaginatedResponse<Question>>(`/categories/${categoryId}/questions`, params)
+  }
+
+  // 获取用户答题记录
+  static async getAnswerRecords(params?: {
+    page?: number
+    pageSize?: number
+    categoryId?: number
+    isCorrect?: boolean
+  }): Promise<ApiResponse<PaginatedResponse<AnswerRecord>>> {
+    return apiClient.get<PaginatedResponse<AnswerRecord>>('/answers', params)
+  }
+
+  // 获取错题本
+  static async getMistakeBook(params?: {
+    page?: number
+    pageSize?: number
+    categoryId?: number
+    isMastered?: boolean
+  }): Promise<ApiResponse<PaginatedResponse<MistakeBook>>> {
+    return apiClient.get<PaginatedResponse<MistakeBook>>('/mistakes', params)
+  }
+
+  // 添加到错题本
+  static async addToMistakeBook(questionId: number): Promise<ApiResponse<MistakeBook>> {
+    return apiClient.post<MistakeBook>('/mistakes', { questionId })
+  }
+
+  // 从错题本移除
+  static async removeFromMistakeBook(questionId: number): Promise<ApiResponse<void>> {
+    return apiClient.delete<void>(`/mistakes/${questionId}`)
+  }
+
+  // 标记错题为已掌握
+  static async markMistakeAsMastered(questionId: number): Promise<ApiResponse<void>> {
+    return apiClient.put<void>(`/mistakes/${questionId}/master`)
+  }
+
+  // 重置错题状态
+  static async resetMistakeStatus(questionId: number): Promise<ApiResponse<void>> {
+    return apiClient.put<void>(`/mistakes/${questionId}/reset`)
+  }
+
+  // 获取分类进度
+  static async getCategoryProgress(categoryId: number): Promise<ApiResponse<{
+    categoryId: number
+    categoryName: string
+    totalAnswered: number
+    correctAnswered: number
+    accuracyRate: number
+  }>> {
+    return apiClient.get(`/categories/${categoryId}/progress`)
+  }
+
+  // 清空错题本
+  static async clearMistakeBook(): Promise<ApiResponse<{
+    message: string
+    deleted_count: number
+  }>> {
+    return apiClient.delete('/mistakes/clear')
+  }
+
+  // 获取热门标签
+  static async getPopularTags(limit?: number): Promise<ApiResponse<string[]>> {
+    return apiClient.get<string[]>('/questions/tags/popular', { limit })
+  }
+
+  // 收藏题目
+  static async favoriteQuestion(questionId: number): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(`/questions/${questionId}/favorite`)
+  }
+
+  // 取消收藏题目
+  static async unfavoriteQuestion(questionId: number): Promise<ApiResponse<void>> {
+    return apiClient.delete<void>(`/questions/${questionId}/favorite`)
+  }
+
+  // 获取收藏的题目
+  static async getFavoriteQuestions(params?: {
+    page?: number
+    pageSize?: number
+  }): Promise<ApiResponse<PaginatedResponse<Question>>> {
+    return apiClient.get<PaginatedResponse<Question>>('/questions/favorites', params)
+  }
+
+  // 举报题目
+  static async reportQuestion(questionId: number, reason: string, description?: string): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(`/questions/${questionId}/report`, {
+      reason,
+      description
+    })
+  }
+}
+
+// 模拟数据服务
+export class MockQuestionService {
+  private static mockCategories: Category[] = [
+    { id: 1, name: '法考题', description: '法律职业资格考试题目', level: 1, questionCount: 1200, icon: 'gavel', color: '#3B82F6', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+    { id: 2, name: '医考题', description: '医师资格考试题目', level: 1, questionCount: 800, icon: 'stethoscope', color: '#EF4444', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+    { id: 3, name: '工程类', description: '各类工程考试题目', level: 1, questionCount: 1500, icon: 'hard-hat', color: '#F59E0B', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+    { id: 11, name: '法律基础', description: '法律基础知识', parentId: 1, level: 2, questionCount: 400, icon: 'book-open', color: '#3B82F6', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+    { id: 12, name: '法律条款', description: '法律条款解读', parentId: 1, level: 2, questionCount: 500, icon: 'file-text', color: '#3B82F6', createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' }
+  ]
+
+  private static generateMockQuestion(id: number, categoryId: number = 1): Question {
+    const difficulties = [QuestionDifficulty.EASY, QuestionDifficulty.MEDIUM, QuestionDifficulty.HARD]
+    const types = [QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE]
+    const category = this.mockCategories.find(c => c.id === categoryId) || this.mockCategories[0]
+    
+    const difficulty = difficulties[Math.floor(Math.random() * difficulties.length)]
+    const type = types[Math.floor(Math.random() * types.length)]
+    
+    const options: QuestionOption[] = [
+      { id: 'A', content: '选项A的内容', isCorrect: true },
+      { id: 'B', content: '选项B的内容', isCorrect: false },
+      { id: 'C', content: '选项C的内容', isCorrect: false },
+      { id: 'D', content: '选项D的内容', isCorrect: false }
+    ]
+    
+    if (type === QuestionType.MULTIPLE_CHOICE) {
+      options[2].isCorrect = true // 多选题
+    } else if (type === QuestionType.TRUE_FALSE) {
+      options.splice(2) // 判断题只有两个选项
+      options[0].content = '正确'
+      options[1].content = '错误'
+    }
+    
+    return {
+      id,
+      title: `第${id}题 - ${category.name}相关题目`,
+      content: `这是一道关于${category.name}的${difficulty === 'easy' ? '简单' : difficulty === 'medium' ? '中等' : '困难'}题目。请仔细阅读题目内容，选择正确答案。题目内容会根据实际情况进行详细描述，包含相关的背景信息和具体要求。`,
+      type,
+      difficulty,
+      options,
+      correctAnswer: type === QuestionType.MULTIPLE_CHOICE ? ['A', 'C'] : 'A',
+      explanation: `这道题的正确答案是${type === QuestionType.MULTIPLE_CHOICE ? 'A和C' : 'A'}。解析：根据相关理论和实践经验，选项A${type === QuestionType.MULTIPLE_CHOICE ? '和选项C' : ''}是正确的，因为它们符合题目要求的条件和标准。其他选项存在明显的错误或不完整之处。`,
+      categoryId,
+      categoryName: category.name,
+      tags: ['基础知识', '重点题型', '常考题'],
+      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      isAnswered: Math.random() > 0.7,
+      isCorrect: Math.random() > 0.3
+    }
+  }
+
+  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const page = params?.page || 1
+    const pageSize = params?.pageSize || 10
+    const total = 1000
+    
+    const questions = Array.from({ length: pageSize }, (_, i) => 
+      this.generateMockQuestion((page - 1) * pageSize + i + 1, params?.categoryId)
+    )
+    
+    return {
+      code: 200,
+      message: '获取题目列表成功',
+      success: true,
+      data: {
+        items: questions,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    }
+  }
+
+  static async getQuestion(id: number): Promise<ApiResponse<Question>> {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    return {
+      code: 200,
+      message: '获取题目详情成功',
+      success: true,
+      data: this.generateMockQuestion(id)
+    }
+  }
+
+  static async getCategories(parentId?: number): Promise<ApiResponse<Category[]>> {
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    const categories = parentId 
+      ? this.mockCategories.filter(c => c.parentId === parentId)
+      : this.mockCategories.filter(c => !c.parentId)
+    
+    return {
+      code: 200,
+      message: '获取分类列表成功',
+      success: true,
+      data: categories
+    }
+  }
+
+  static async submitAnswer(data: SubmitAnswerRequest): Promise<ApiResponse<AnswerRecord>> {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    const question = this.generateMockQuestion(data.questionId)
+    const isCorrect = JSON.stringify(data.userAnswer) === JSON.stringify(question.correctAnswer)
+    
+    return {
+      code: 200,
+      message: '提交答案成功',
+      success: true,
+      data: {
+        id: Date.now(),
+        questionId: data.questionId,
+        userId: 1,
+        userAnswer: data.userAnswer,
+        isCorrect,
+        timeSpent: data.timeSpent,
+        answeredAt: new Date().toISOString(),
+        question
+      }
+    }
+  }
+
+  static async getMistakeBook(params?: any): Promise<ApiResponse<PaginatedResponse<MistakeBook>>> {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    
+    const page = params?.page || 1
+    const pageSize = params?.pageSize || 10
+    const total = 50
+    
+    const mistakes = Array.from({ length: Math.min(pageSize, total - (page - 1) * pageSize) }, (_, i) => ({
+      id: (page - 1) * pageSize + i + 1,
+      questionId: (page - 1) * pageSize + i + 1,
+      userId: 1,
+      addedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+      reviewCount: Math.floor(Math.random() * 5),
+      lastReviewAt: Math.random() > 0.5 ? new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      isMastered: Math.random() > 0.7,
+      question: this.generateMockQuestion((page - 1) * pageSize + i + 1)
+    }))
+    
+    return {
+      code: 200,
+      message: '获取错题本成功',
+      success: true,
+      data: {
+        items: mistakes,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    }
+  }
+
+  static async addToMistakeBook(questionId: number): Promise<ApiResponse<MistakeBook>> {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    return {
+      code: 200,
+      message: '添加到错题本成功',
+      success: true,
+      data: {
+        id: Date.now(),
+        questionId,
+        userId: 1,
+        addedAt: new Date().toISOString(),
+        reviewCount: 0,
+        isMastered: false,
+        question: this.generateMockQuestion(questionId)
+      }
+    }
+  }
+}
+
+// 根据环境选择使用真实服务还是模拟服务
+const isDevelopment = import.meta.env.DEV
+export const questionService = isDevelopment ? MockQuestionService : QuestionService
+
+export default questionService

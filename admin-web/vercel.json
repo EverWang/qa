@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "name": "shuashuati-admin",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "functions": {
+    "dist/**": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["hkg1"]
+}

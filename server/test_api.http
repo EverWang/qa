@@ -1,0 +1,344 @@
+### 刷刷题API测试脚本
+### 使用VS Code的REST Client插件或其他HTTP客户端工具运行
+
+@baseUrl = http://localhost:8080/api/v1
+@token = your_jwt_token_here
+@adminToken = your_admin_jwt_token_here
+
+### 健康检查
+GET http://localhost:8080/health
+
+### ========== 认证接口测试 ==========
+
+### 微信登录
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "code": "test_wechat_code"
+}
+
+### 刷新令牌
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "token": "{{token}}"
+}
+
+### 管理员登录
+POST {{baseUrl}}/admin/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### ========== 分类接口测试 ==========
+
+### 获取分类列表（树形结构）
+GET {{baseUrl}}/categories?tree=true
+
+### 获取分类列表（平铺）
+GET {{baseUrl}}/categories
+
+### 获取顶级分类
+GET {{baseUrl}}/categories?parent_id=0
+
+### 获取分类详情
+GET {{baseUrl}}/categories/1
+
+### 创建分类（管理员）
+POST {{baseUrl}}/admin/categories
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "测试分类",
+  "parent_id": null,
+  "level": 1,
+  "sort": 10
+}
+
+### 更新分类（管理员）
+PUT {{baseUrl}}/admin/categories/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "更新后的分类名称",
+  "sort": 20
+}
+
+### 删除分类（管理员）
+DELETE {{baseUrl}}/admin/categories/1
+Authorization: Bearer {{adminToken}}
+
+### ========== 题目接口测试 ==========
+
+### 获取题目列表
+GET {{baseUrl}}/questions?page=1&size=10
+
+### 按分类获取题目
+GET {{baseUrl}}/questions?category_id=1&page=1&size=5
+
+### 按难度获取题目
+GET {{baseUrl}}/questions?difficulty=medium&page=1&size=5
+
+### 搜索题目
+GET {{baseUrl}}/questions?keyword=道路&page=1&size=5
+
+### 获取题目详情
+GET {{baseUrl}}/questions/1
+
+### 获取随机题目
+GET {{baseUrl}}/questions/random?count=5
+
+### 按分类获取随机题目
+GET {{baseUrl}}/questions/random?count=3&category_id=1
+
+### 按难度获取随机题目
+GET {{baseUrl}}/questions/random?count=3&difficulty=easy
+
+### 根据分类获取题目
+GET {{baseUrl}}/questions/category/1?page=1&size=5
+
+### 创建题目（管理员）
+POST {{baseUrl}}/admin/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "测试题目",
+  "content": "这是一道测试题目，请选择正确答案。",
+  "options": ["选项A", "选项B", "选项C", "选项D"],
+  "correct_answer": 1,
+  "explanation": "正确答案是B，因为...",
+  "difficulty": "medium",
+  "category_id": 1
+}
+
+### 更新题目（管理员）
+PUT {{baseUrl}}/admin/questions/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "更新后的题目标题",
+  "explanation": "更新后的解析内容"
+}
+
+### 删除题目（管理员）
+DELETE {{baseUrl}}/admin/questions/1
+Authorization: Bearer {{adminToken}}
+
+### ========== 用户接口测试 ==========
+
+### 获取用户信息
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{token}}
+
+### 更新用户信息
+PUT {{baseUrl}}/user/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nickname": "新昵称",
+  "avatar": "https://example.com/avatar.jpg"
+}
+
+### 获取用户列表（管理员）
+GET {{baseUrl}}/admin/users?page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 获取用户详情（管理员）
+GET {{baseUrl}}/admin/users/1
+Authorization: Bearer {{adminToken}}
+
+### 更新用户（管理员）
+PUT {{baseUrl}}/admin/users/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nickname": "管理员修改的昵称"
+}
+
+### 删除用户（管理员）
+DELETE {{baseUrl}}/admin/users/1
+Authorization: Bearer {{adminToken}}
+
+### ========== 答题接口测试 ==========
+
+### 提交答案
+POST {{baseUrl}}/answers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question_id": 1,
+  "user_answer": 1,
+  "time_spent": 30
+}
+
+### 提交错误答案
+POST {{baseUrl}}/answers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question_id": 2,
+  "user_answer": 0,
+  "time_spent": 45
+}
+
+### 获取答题历史
+GET {{baseUrl}}/answers/history?page=1&size=10
+Authorization: Bearer {{token}}
+
+### 获取正确答题历史
+GET {{baseUrl}}/answers/history?is_correct=true&page=1&size=5
+Authorization: Bearer {{token}}
+
+### 获取错误答题历史
+GET {{baseUrl}}/answers/history?is_correct=false&page=1&size=5
+Authorization: Bearer {{token}}
+
+### 按分类获取答题历史
+GET {{baseUrl}}/answers/history?category_id=1&page=1&size=5
+Authorization: Bearer {{token}}
+
+### 获取答题统计
+GET {{baseUrl}}/answers/statistics
+Authorization: Bearer {{token}}
+
+### ========== 错题本接口测试 ==========
+
+### 获取错题本
+GET {{baseUrl}}/mistakes?page=1&size=10
+Authorization: Bearer {{token}}
+
+### 按分类获取错题本
+GET {{baseUrl}}/mistakes?category_id=1&page=1&size=5
+Authorization: Bearer {{token}}
+
+### 按难度获取错题本
+GET {{baseUrl}}/mistakes?difficulty=medium&page=1&size=5
+Authorization: Bearer {{token}}
+
+### 手动添加到错题本
+POST {{baseUrl}}/mistakes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question_id": 3
+}
+
+### 从错题本移除
+DELETE {{baseUrl}}/mistakes/1
+Authorization: Bearer {{token}}
+
+### 清空错题本
+DELETE {{baseUrl}}/mistakes/clear
+Authorization: Bearer {{token}}
+
+### ========== 统计接口测试（管理员） ==========
+
+### 获取概览统计
+GET {{baseUrl}}/admin/statistics/overview
+Authorization: Bearer {{adminToken}}
+
+### 获取题目统计
+GET {{baseUrl}}/admin/statistics/questions?page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 按分类获取题目统计
+GET {{baseUrl}}/admin/statistics/questions?category_id=1&page=1&size=5
+Authorization: Bearer {{adminToken}}
+
+### 按难度获取题目统计
+GET {{baseUrl}}/admin/statistics/questions?difficulty=medium&page=1&size=5
+Authorization: Bearer {{adminToken}}
+
+### 按答题数排序的题目统计
+GET {{baseUrl}}/admin/statistics/questions?sort_by=total_answered&sort_order=DESC&page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 按正确率排序的题目统计
+GET {{baseUrl}}/admin/statistics/questions?sort_by=accuracy_rate&sort_order=ASC&page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 获取用户统计
+GET {{baseUrl}}/admin/statistics/users?page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 按答题数排序的用户统计
+GET {{baseUrl}}/admin/statistics/users?sort_by=total_answered&sort_order=DESC&page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 按正确率排序的用户统计
+GET {{baseUrl}}/admin/statistics/users?sort_by=accuracy_rate&sort_order=DESC&page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### 按活跃时间排序的用户统计
+GET {{baseUrl}}/admin/statistics/users?sort_by=last_active_time&sort_order=DESC&page=1&size=10
+Authorization: Bearer {{adminToken}}
+
+### ========== 错误测试用例 ==========
+
+### 无效的JWT令牌
+GET {{baseUrl}}/user/profile
+Authorization: Bearer invalid_token
+
+### 缺少认证头
+GET {{baseUrl}}/user/profile
+
+### 无效的题目ID
+GET {{baseUrl}}/questions/99999
+
+### 无效的分类ID
+GET {{baseUrl}}/categories/99999
+
+### 提交无效答案
+POST {{baseUrl}}/answers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question_id": 1,
+  "user_answer": 99,
+  "time_spent": 30
+}
+
+### 普通用户访问管理员接口
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{token}}
+
+### 创建重复的错题本记录
+POST {{baseUrl}}/mistakes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "question_id": 1
+}
+
+### ========== 边界测试用例 ==========
+
+### 获取大量随机题目
+GET {{baseUrl}}/questions/random?count=50
+
+### 超出范围的分页参数
+GET {{baseUrl}}/questions?page=0&size=0
+
+### 超大分页参数
+GET {{baseUrl}}/questions?page=999999&size=1000
+
+### 空的搜索关键词
+GET {{baseUrl}}/questions?keyword=
+
+### 特殊字符搜索
+GET {{baseUrl}}/questions?keyword=%E2%80%9C%E2%80%9D
