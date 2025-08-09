@@ -195,6 +195,9 @@ import {
   ChevronRight, CheckCircle, XCircle, BookOpen, LogOut
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { authService } from '@/services/auth'
+import { StatisticsService } from '@/services/statistics'
+import { questionService } from '@/services/question'
 
 interface UserStats {
   totalAnswered: number
@@ -299,17 +302,34 @@ const loadUserStats = async () => {
   }
   
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // 使用真实API获取用户统计
+    const response = await StatisticsService.getUserStatistics()
     
-    stats.value = {
-      totalAnswered: 156,
-      correctRate: 78,
-      mistakeCount: 34,
-      studyDays: 12
+    if (response.success && response.data) {
+      stats.value = {
+        totalAnswered: response.data.totalAnswered,
+        correctRate: Math.round(response.data.accuracyRate),
+        mistakeCount: response.data.totalAnswered - response.data.correctAnswered,
+        studyDays: Math.ceil(response.data.totalTimeSpent / (60 * 24)) // 假设每天学习24分钟
+      }
+    } else {
+      // 如果API调用失败，使用默认值
+      stats.value = {
+        totalAnswered: 0,
+        correctRate: 0,
+        mistakeCount: 0,
+        studyDays: 0
+      }
     }
   } catch (error) {
     console.error('加载用户统计失败:', error)
+    // 出错时使用默认值
+    stats.value = {
+      totalAnswered: 0,
+      correctRate: 0,
+      mistakeCount: 0,
+      studyDays: 0
+    }
   }
 }
 
@@ -321,34 +341,29 @@ const loadRecentQuestions = async () => {
   }
   
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 300))
+    // 使用真实API获取最近答题记录
+    const response = await questionService.getAnswerRecords({
+      page: 1,
+      pageSize: 5 // 只获取最近5条记录
+    })
     
-    recentQuestions.value = [
-      {
-        id: 1,
-        title: '道路工程施工安全规范',
-        category: { id: 3, name: '道路工程' },
-        isCorrect: true,
-        answeredAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2小时前
-      },
-      {
-        id: 2,
-        title: '法律条文理解',
-        category: { id: 1, name: '法考题' },
-        isCorrect: false,
-        answeredAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1天前
-      },
-      {
-        id: 3,
-        title: '临床医学基础',
-        category: { id: 2, name: '医考题' },
-        isCorrect: true,
-        answeredAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() // 2天前
-      }
-    ]
+    if (response.success && response.data && response.data.items) {
+      recentQuestions.value = response.data.items.map(record => ({
+        id: record.questionId,
+        title: record.question?.title || '题目标题',
+        category: {
+          id: record.question?.categoryId || 0,
+          name: '未分类' // 需要从分类列表中查找名称
+        },
+        isCorrect: record.isCorrect,
+        answeredAt: record.answeredAt
+      }))
+    } else {
+      recentQuestions.value = []
+    }
   } catch (error) {
     console.error('加载最近答题记录失败:', error)
+    recentQuestions.value = []
   }
 }
 

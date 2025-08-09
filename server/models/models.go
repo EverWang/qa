@@ -26,14 +26,15 @@ type User struct {
 
 // Category 分类模型
 type Category struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	Name      string    `json:"name" gorm:"size:50;not null"`
-	ParentID  *uint     `json:"parent_id" gorm:"index"`
-	Level     int       `json:"level" gorm:"default:1"`
-	Sort      int       `json:"sort" gorm:"default:0"`
-	Status    int       `json:"status" gorm:"default:1;comment:状态 1-启用 0-禁用"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          uint      `json:"id" gorm:"primaryKey"`
+	Name        string    `json:"name" gorm:"size:50;not null"`
+	Description string    `json:"description" gorm:"size:255"`
+	ParentID    *uint     `json:"parent_id" gorm:"index"`
+	Level       int       `json:"level" gorm:"default:1"`
+	Sort        int       `json:"sort_order" gorm:"default:0"`
+	Status      int       `json:"status" gorm:"default:1;comment:状态 1-启用 0-禁用"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	
 	// 关联
 	Parent   *Category  `json:"parent,omitempty" gorm:"foreignKey:ParentID"`
@@ -76,7 +77,8 @@ type Question struct {
 	ID            uint      `json:"id" gorm:"primaryKey"`
 	Title         string    `json:"title" gorm:"size:200;not null"`
 	Content       string    `json:"content" gorm:"type:text;not null"`
-	Options       JSONArray `json:"options" gorm:"type:json;not null"`
+	Type          string    `json:"type" gorm:"type:enum('single','multiple','judge','fill');default:'single'"`
+	Options       JSONArray `json:"options" gorm:"type:json"`
 	CorrectAnswer int       `json:"correct_answer" gorm:"not null"`
 	Explanation   string    `json:"explanation" gorm:"type:text"`
 	Difficulty    string    `json:"difficulty" gorm:"type:enum('easy','medium','hard');default:'medium'"`

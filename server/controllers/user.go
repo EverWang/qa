@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"qaminiprogram/config"
 	"qaminiprogram/models"
@@ -101,6 +102,9 @@ func UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
+	// 记录操作日志
+	LogOperation(c, "UPDATE", "USER", fmt.Sprintf("更新用户: %s", user.Username))
+
 	SuccessResponse(c, user)
 }
 
@@ -109,15 +113,36 @@ func GetUsers(c *gin.Context) {
 	page, size := ParsePageParams(c)
 	offset := (page - 1) * size
 
+	// 获取搜索参数
+	username := c.Query("username")
+	email := c.Query("email")
+	role := c.Query("role")
+	status := c.Query("status")
+
 	db := config.GetDB()
 	var users []models.User
 	var total int64
 
+	// 构建查询条件
+	query := db.Model(&models.User{})
+	if username != "" {
+		query = query.Where("username LIKE ?", "%"+username+"%")
+	}
+	if email != "" {
+		query = query.Where("email LIKE ?", "%"+email+"%")
+	}
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
 	// 获取总数
-	db.Model(&models.User{}).Count(&total)
+	query.Count(&total)
 
 	// 获取用户列表
-	if err := db.Offset(offset).Limit(size).Find(&users).Error; err != nil {
+	if err := query.Offset(offset).Limit(size).Find(&users).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "获取用户列表失败")
 		return
 	}
@@ -206,10 +231,18 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+	// 获取用户名用于日志记录
+	var user models.User
+	db.Where("id = ?", id).First(&user)
+	username := user.Username
+
 	if err := db.Delete(&models.User{}, id).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "删除失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "DELETE", "USER", fmt.Sprintf("删除用户: %s", username))
 
 	SuccessResponse(c, gin.H{"message": "删除成功"})
 }
@@ -228,10 +261,21 @@ func BatchDeleteUsers(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+	// 获取要删除的用户名列表用于日志记录
+	var users []models.User
+	db.Where("id IN ?", req.IDs).Find(&users)
+	usernames := make([]string, len(users))
+	for i, user := range users {
+		usernames[i] = user.Username
+	}
+
 	if err := db.Where("id IN ?", req.IDs).Delete(&models.User{}).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "批量删除失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "BATCH_DELETE", "USER", fmt.Sprintf("批量删除用户: %v", usernames))
 
 	SuccessResponse(c, gin.H{"message": "批量删除成功"})
 }
@@ -257,11 +301,15 @@ func UpdateUserStatus(c *gin.Context) {
 		return
 	}
 
+	oldStatus := user.Status
 	user.Status = req.Status
 	if err := db.Save(&user).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "更新状态失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "UPDATE_STATUS", "USER", fmt.Sprintf("将用户 %s 状态从 %s 更新为 %s", user.Username, oldStatus, req.Status))
 
 	SuccessResponse(c, user)
 }
@@ -312,6 +360,9 @@ func CreateUser(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "创建用户失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "CREATE", "USER", fmt.Sprintf("创建用户: %s", user.Username))
 
 	SuccessResponse(c, user)
 }

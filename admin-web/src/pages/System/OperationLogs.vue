@@ -209,35 +209,20 @@ const fetchLogs = async () => {
     }
 
     const response = await api.get('/api/v1/admin/operation-logs', { params })
-    logs.value = response.data.data || []
-    pagination.total = response.data.total || 0
+    
+    if (response && response.data && response.data.code === 200) {
+      logs.value = response.data.data.data || []
+      pagination.total = response.data.data.total || 0
+    } else {
+      logs.value = []
+      pagination.total = 0
+      ElMessage.error('获取操作日志失败')
+    }
   } catch (error) {
     console.error('获取操作日志失败:', error)
-    ElMessage.error('获取操作日志失败')
-    // 使用模拟数据
-    logs.value = [
-      {
-        id: 1,
-        operator: 'admin',
-        action: 'login',
-        resource: '系统',
-        description: '管理员登录系统',
-        ip: '192.168.1.100',
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        createdAt: '2024-01-15 10:30:00'
-      },
-      {
-        id: 2,
-        operator: 'admin',
-        action: 'create',
-        resource: '题目',
-        description: '创建题目：JavaScript基础知识',
-        ip: '192.168.1.100',
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        createdAt: '2024-01-15 10:35:00'
-      }
-    ]
-    pagination.total = 2
+    ElMessage.error('获取操作日志失败: ' + (error.response?.data?.message || error.message))
+    logs.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }

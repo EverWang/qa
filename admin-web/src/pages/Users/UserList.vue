@@ -643,7 +643,7 @@ const fetchUsers = async () => {
     }
     
     const response = await api.get('/api/v1/admin/users', { params })
-    const data = response.data.data
+    const data = response.data
     
     users.value = data.data || []
     total.value = data.total || 0

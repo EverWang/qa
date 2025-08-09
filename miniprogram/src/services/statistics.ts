@@ -32,14 +32,30 @@ export class StatisticsService {
    * 获取概览统计数据（公开接口，不需要认证）
    */
   static async getOverviewStatistics(): Promise<ApiResponse<OverviewStatistics>> {
-    return apiClient.get<OverviewStatistics>('/statistics/overview')
+    try {
+      console.log('StatisticsService.getOverviewStatistics 开始调用')
+      const response = await apiClient.get<OverviewStatistics>('/statistics/overview')
+      console.log('StatisticsService.getOverviewStatistics 响应:', response)
+      return response
+    } catch (error) {
+      console.error('StatisticsService.getOverviewStatistics 错误:', error)
+      throw error
+    }
   }
 
   /**
    * 获取用户个人统计数据（需要认证）
    */
   static async getUserStatistics(): Promise<ApiResponse<UserStatistics>> {
-    return apiClient.get<UserStatistics>('/answers/statistics')
+    try {
+      console.log('StatisticsService.getUserStatistics 开始调用')
+      const response = await apiClient.get<UserStatistics>('/answers/statistics')
+      console.log('StatisticsService.getUserStatistics 响应:', response)
+      return response
+    } catch (error) {
+      console.error('StatisticsService.getUserStatistics 错误:', error)
+      throw error
+    }
   }
 }
 

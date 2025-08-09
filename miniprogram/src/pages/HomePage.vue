@@ -290,10 +290,13 @@ const refreshRecommended = async () => {
  */
 const loadRecommendedQuestions = async () => {
   try {
+    console.log('开始加载推荐题目...')
     const response = await QuestionService.getQuestions({
       page: 1,
       pageSize: 3
     })
+    
+    console.log('推荐题目API响应:', response)
     
     if (response.success && response.data) {
       recommendedQuestions.value = response.data.items.map(q => ({
@@ -306,6 +309,9 @@ const loadRecommendedQuestions = async () => {
           name: q.categoryName || '未分类'
         }
       }))
+      console.log('推荐题目加载成功，数量:', recommendedQuestions.value.length)
+    } else {
+      console.log('推荐题目API响应失败:', response)
     }
   } catch (error) {
     console.error('加载推荐题目失败:', error)
@@ -319,43 +325,57 @@ const loadRecommendedQuestions = async () => {
  */
 const loadCategories = async () => {
   try {
+    console.log('开始加载分类数据...')
     const response = await QuestionService.getCategories()
+    
+    console.log('分类API响应:', response)
     
     if (response.success && response.data) {
       // 为分类添加图标和颜色
       const iconMap: { [key: string]: any } = {
         '法考': Gavel,
+        '法律': Gavel,
         '医考': Stethoscope,
+        '医学': Stethoscope,
         '工程': HardHat,
+        '建筑': HardHat,
         '其他': GraduationCap
       }
       
       const colorMap: { [key: string]: string } = {
         '法考': '#3B82F6',
-        '医考': '#EF4444', 
+        '法律': '#3B82F6',
+        '医考': '#EF4444',
+        '医学': '#EF4444', 
         '工程': '#F59E0B',
+        '建筑': '#F59E0B',
         '其他': '#8B5CF6'
       }
       
-      categories.value = response.data.map((cat, index) => {
-        const key = Object.keys(iconMap).find(k => cat.name.includes(k)) || '其他'
+      // 只显示一级分类（没有父分类的分类）
+      const topLevelCategories = response.data.filter(cat => !cat.parentId || cat.parentId === 0)
+      
+      categories.value = topLevelCategories.map((cat, index) => {
+        // 直接使用分类名称作为key，如果没有匹配则使用'其他'
+        const key = iconMap[cat.name] ? cat.name : '其他'
+        console.log('处理分类:', cat.name, '使用key:', key)
         return {
           ...cat,
           color: colorMap[key] || colorMap['其他'],
           icon: iconMap[key] || iconMap['其他']
         }
       })
+      
+      console.log('分类加载成功，数量:', categories.value.length)
+      console.log('分类详情:', categories.value)
+    } else {
+      console.log('分类API响应失败:', response)
     }
   } catch (error) {
-    console.error('加载分类失败:', error)
-    // 使用默认分类数据
-    categories.value = [
-      { id: 1, name: '法考题', questionCount: 0, color: '#3B82F6', icon: Gavel, description: '', parentId: undefined, level: 1, createdAt: '', updatedAt: '' },
-      { id: 2, name: '医考题', questionCount: 0, color: '#EF4444', icon: Stethoscope, description: '', parentId: undefined, level: 1, createdAt: '', updatedAt: '' },
-      { id: 3, name: '工程类', questionCount: 0, color: '#F59E0B', icon: HardHat, description: '', parentId: undefined, level: 1, createdAt: '', updatedAt: '' },
-      { id: 4, name: '其他考试', questionCount: 0, color: '#8B5CF6', icon: GraduationCap, description: '', parentId: undefined, level: 1, createdAt: '', updatedAt: '' }
-    ]
-  }
+      console.error('加载分类失败:', error)
+      // 不使用默认分类数据，保持空数组让用户知道加载失败
+      categories.value = []
+    }
 }
 
 /**
@@ -405,10 +425,11 @@ const loadUserStats = async () => {
     const response = await StatisticsService.getUserStatistics()
     
     if (response.success && response.data) {
+      const data = response.data
       userStats.value = {
-        totalAnswered: response.data.totalAnswered,
-        correctRate: response.data.accuracyRate,
-        mistakeCount: response.data.totalAnswered - response.data.correctAnswered,
+        totalAnswered: data.totalAnswered || 0,
+        correctRate: Math.round(data.accuracyRate || 0),
+        mistakeCount: (data.totalAnswered || 0) - (data.correctAnswered || 0),
         studyDays: Math.ceil((Date.now() - new Date(authStore.user?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24))
       }
     }

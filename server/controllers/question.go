@@ -17,7 +17,8 @@ import (
 type CreateQuestionRequest struct {
 	Title         string   `json:"title" binding:"required"`
 	Content       string   `json:"content" binding:"required"`
-	Options       []string `json:"options" binding:"required,min=2"`
+	Type          string   `json:"type" binding:"required"`
+	Options       []string `json:"options"`
 	CorrectAnswer int      `json:"correct_answer" binding:"min=0"`
 	Explanation   string   `json:"explanation"`
 	Difficulty    string   `json:"difficulty"`
@@ -28,6 +29,7 @@ type CreateQuestionRequest struct {
 type UpdateQuestionRequest struct {
 	Title         string   `json:"title"`
 	Content       string   `json:"content"`
+	Type          string   `json:"type"`
 	Options       []string `json:"options"`
 	CorrectAnswer *int     `json:"correct_answer"`
 	Explanation   string   `json:"explanation"`
@@ -84,6 +86,7 @@ func GetAdminQuestions(c *gin.Context) {
 	// 获取查询参数
 	categoryID := c.Query("category_id")
 	difficulty := c.Query("difficulty")
+	questionType := c.Query("type") // 添加题目类型参数
 	keyword := c.Query("keyword")
 	creatorID := c.Query("creator_id")
 	startDate := c.Query("start_date")
@@ -98,6 +101,9 @@ func GetAdminQuestions(c *gin.Context) {
 	}
 	if difficulty != "" {
 		query = query.Where("difficulty = ?", difficulty)
+	}
+	if questionType != "" {
+		query = query.Where("type = ?", questionType)
 	}
 	if keyword != "" {
 		query = query.Where("title LIKE ? OR content LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
@@ -212,8 +218,28 @@ func CreateQuestion(c *gin.Context) {
 		return
 	}
 
-	// 验证正确答案索引
-	if req.CorrectAnswer >= len(req.Options) {
+	// 验证题目类型
+	validTypes := []string{"single", "multiple", "judge", "fill"}
+	isValidType := false
+	for _, validType := range validTypes {
+		if req.Type == validType {
+			isValidType = true
+			break
+		}
+	}
+	if !isValidType {
+		ErrorResponse(c, http.StatusBadRequest, "题目类型无效")
+		return
+	}
+
+	// 验证选项（仅对选择题）
+	if (req.Type == "single" || req.Type == "multiple") && len(req.Options) < 2 {
+		ErrorResponse(c, http.StatusBadRequest, "选择题至少需要2个选项")
+		return
+	}
+
+	// 验证正确答案索引（仅对选择题）
+	if (req.Type == "single" || req.Type == "multiple") && req.CorrectAnswer >= len(req.Options) {
 		ErrorResponse(c, http.StatusBadRequest, "正确答案索引超出范围")
 		return
 	}
@@ -237,6 +263,7 @@ func CreateQuestion(c *gin.Context) {
 	question := models.Question{
 		Title:         req.Title,
 		Content:       req.Content,
+		Type:          req.Type,
 		Options:       models.JSONArray(req.Options),
 		CorrectAnswer: req.CorrectAnswer,
 		Explanation:   req.Explanation,
@@ -252,6 +279,9 @@ func CreateQuestion(c *gin.Context) {
 
 	// 预加载关联数据
 	db.Preload("Category").Preload("Creator").First(&question, question.ID)
+
+	// 记录操作日志
+	LogOperation(c, "CREATE", "QUESTION", fmt.Sprintf("创建题目: %s", question.Title))
 
 	SuccessResponse(c, question)
 }
@@ -283,6 +313,22 @@ func UpdateQuestion(c *gin.Context) {
 	}
 	if req.Content != "" {
 		question.Content = req.Content
+	}
+	if req.Type != "" {
+		// 验证题目类型
+		validTypes := []string{"single", "multiple", "judge", "fill"}
+		isValidType := false
+		for _, validType := range validTypes {
+			if req.Type == validType {
+				isValidType = true
+				break
+			}
+		}
+		if !isValidType {
+			ErrorResponse(c, http.StatusBadRequest, "题目类型无效")
+			return
+		}
+		question.Type = req.Type
 	}
 	if len(req.Options) > 0 {
 		question.Options = models.JSONArray(req.Options)
@@ -319,6 +365,9 @@ func UpdateQuestion(c *gin.Context) {
 	// 预加载关联数据
 	db.Preload("Category").Preload("Creator").First(&question, question.ID)
 
+	// 记录操作日志
+	LogOperation(c, "UPDATE", "QUESTION", fmt.Sprintf("更新题目: %s", question.Title))
+
 	SuccessResponse(c, question)
 }
 
@@ -331,10 +380,18 @@ func DeleteQuestion(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+	// 获取题目标题用于日志记录
+	var question models.Question
+	db.Where("id = ?", id).First(&question)
+	questionTitle := question.Title
+
 	if err := db.Delete(&models.Question{}, id).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "删除题目失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "DELETE", "QUESTION", fmt.Sprintf("删除题目: %s", questionTitle))
 
 	SuccessResponse(c, gin.H{"message": "删除成功"})
 }
@@ -353,10 +410,21 @@ func BatchDeleteQuestions(c *gin.Context) {
 	}
 
 	db := config.GetDB()
+	// 获取要删除的题目标题列表用于日志记录
+	var questions []models.Question
+	db.Where("id IN ?", req.IDs).Find(&questions)
+	questionTitles := make([]string, len(questions))
+	for i, question := range questions {
+		questionTitles[i] = question.Title
+	}
+
 	if err := db.Where("id IN ?", req.IDs).Delete(&models.Question{}).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "批量删除失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "BATCH_DELETE", "QUESTION", fmt.Sprintf("批量删除题目: %v", questionTitles))
 
 	SuccessResponse(c, gin.H{"message": "批量删除成功"})
 }

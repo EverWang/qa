@@ -1,5 +1,5 @@
 import { apiClient } from './api'
-import type { ApiResponse, PaginatedResponse } from './api'
+import type { ApiResponse, FrontendPaginatedResponse } from './api'
 
 // 题目难度枚举
 export enum QuestionDifficulty {
@@ -107,8 +107,44 @@ export interface SubmitAnswerRequest {
 // 题目服务
 export class QuestionService {
   // 获取题目列表
-  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
-    return apiClient.get<PaginatedResponse<Question>>('/questions', params)
+  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
+    try {
+      console.log('QuestionService.getQuestions 调用参数:', params)
+      const response = await apiClient.getPaginated<any>('/questions', params)
+      console.log('QuestionService.getQuestions 原始响应:', response)
+      
+      // 转换后端数据格式到前端期望格式
+      if (response.success && response.data && response.data.items) {
+        response.data.items = response.data.items.map((item: any) => {
+          console.log('转换题目数据:', item)
+          return {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            type: item.type,
+            difficulty: item.difficulty,
+            options: Array.isArray(item.options) ? item.options.map((opt: any, index: number) => ({
+              id: String.fromCharCode(65 + index), // A, B, C, D
+              content: opt,
+              isCorrect: item.correct_answer === index + 1
+            })) : [],
+            correctAnswer: item.correct_answer,
+            explanation: item.explanation || '',
+            categoryId: item.category_id,
+            categoryName: item.category?.name || '未分类',
+            tags: item.tags || [],
+            createdAt: item.created_at,
+            updatedAt: item.updated_at
+          }
+        })
+        console.log('转换后的题目数据:', response.data.items)
+      }
+      
+      return response
+    } catch (error) {
+      console.error('QuestionService.getQuestions 错误:', error)
+      throw error
+    }
   }
 
   // 获取题目详情
@@ -117,8 +153,8 @@ export class QuestionService {
   }
 
   // 搜索题目
-  static async searchQuestions(params: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
-    return apiClient.get<PaginatedResponse<Question>>('/questions/search', params)
+  static async searchQuestions(params: QuestionSearchParams): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
+    return apiClient.getPaginated<Question>('/questions/search', params)
   }
 
   // 获取随机题目
@@ -147,7 +183,46 @@ export class QuestionService {
 
   // 获取分类列表
   static async getCategories(parentId?: number): Promise<ApiResponse<Category[]>> {
-    return apiClient.get<Category[]>('/categories', { parentId })
+    try {
+      console.log('QuestionService.getCategories 调用参数:', { parentId })
+      const response = await apiClient.get<any>('/categories', { parentId })
+      console.log('QuestionService.getCategories 原始响应:', response)
+      
+      // 转换后端数据格式到前端期望格式
+      if (response.success && response.data) {
+        // 确保response.data是数组
+        const dataArray = Array.isArray(response.data) ? response.data : []
+        console.log('QuestionService.getCategories 数据数组:', dataArray)
+        
+        const transformedData = dataArray.map((item: any) => {
+          console.log('转换分类数据:', item)
+          return {
+            id: item.id,
+            name: item.name,
+            description: item.description || '',
+            parentId: item.parent_id,
+            level: item.level,
+            questionCount: item.question_count || 0,
+            createdAt: item.created_at,
+            updatedAt: item.updated_at
+          }
+        })
+        console.log('转换后的分类数据:', transformedData)
+        
+        return {
+          ...response,
+          data: transformedData
+        }
+      }
+      
+      return {
+        ...response,
+        data: []
+      }
+    } catch (error) {
+      console.error('QuestionService.getCategories 错误:', error)
+      throw error
+    }
   }
 
   // 获取分类详情
@@ -156,8 +231,8 @@ export class QuestionService {
   }
 
   // 获取分类下的题目
-  static async getCategoryQuestions(categoryId: number, params?: Omit<QuestionSearchParams, 'categoryId'>): Promise<ApiResponse<PaginatedResponse<Question>>> {
-    return apiClient.get<PaginatedResponse<Question>>(`/categories/${categoryId}/questions`, params)
+  static async getCategoryQuestions(categoryId: number, params?: Omit<QuestionSearchParams, 'categoryId'>): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
+    return apiClient.getPaginated<Question>(`/categories/${categoryId}/questions`, params)
   }
 
   // 获取用户答题记录
@@ -166,8 +241,8 @@ export class QuestionService {
     pageSize?: number
     categoryId?: number
     isCorrect?: boolean
-  }): Promise<ApiResponse<PaginatedResponse<AnswerRecord>>> {
-    return apiClient.get<PaginatedResponse<AnswerRecord>>('/answers', params)
+  }): Promise<ApiResponse<FrontendPaginatedResponse<AnswerRecord>>> {
+    return apiClient.getPaginated<AnswerRecord>('/answers', params)
   }
 
   // 获取错题本
@@ -176,8 +251,8 @@ export class QuestionService {
     pageSize?: number
     categoryId?: number
     isMastered?: boolean
-  }): Promise<ApiResponse<PaginatedResponse<MistakeBook>>> {
-    return apiClient.get<PaginatedResponse<MistakeBook>>('/mistakes', params)
+  }): Promise<ApiResponse<FrontendPaginatedResponse<MistakeBook>>> {
+    return apiClient.getPaginated<MistakeBook>('/mistakes', params)
   }
 
   // 添加到错题本
@@ -238,8 +313,8 @@ export class QuestionService {
   static async getFavoriteQuestions(params?: {
     page?: number
     pageSize?: number
-  }): Promise<ApiResponse<PaginatedResponse<Question>>> {
-    return apiClient.get<PaginatedResponse<Question>>('/questions/favorites', params)
+  }): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
+    return apiClient.get<FrontendPaginatedResponse<Question>>('/questions/favorites', params)
   }
 
   // 举报题目
@@ -303,7 +378,7 @@ export class MockQuestionService {
     }
   }
 
-  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<PaginatedResponse<Question>>> {
+  static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
     await new Promise(resolve => setTimeout(resolve, 500))
     
     const page = params?.page || 1
@@ -377,7 +452,7 @@ export class MockQuestionService {
     }
   }
 
-  static async getMistakeBook(params?: any): Promise<ApiResponse<PaginatedResponse<MistakeBook>>> {
+  static async getMistakeBook(params?: any): Promise<ApiResponse<FrontendPaginatedResponse<MistakeBook>>> {
     await new Promise(resolve => setTimeout(resolve, 400))
     
     const page = params?.page || 1
@@ -429,8 +504,7 @@ export class MockQuestionService {
   }
 }
 
-// 根据环境选择使用真实服务还是模拟服务
-const isDevelopment = import.meta.env.DEV
-export const questionService = isDevelopment ? MockQuestionService : QuestionService
+// 使用真实的题目服务
+export const questionService = QuestionService
 
 export default questionService

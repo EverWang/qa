@@ -371,7 +371,7 @@ const previewQuestion = computed(() => ({
 
 // 方法
 const handleBack = () => {
-  router.push('/admin/questions')
+  router.push('/questions')
 }
 
 const handlePreview = () => {
@@ -383,19 +383,23 @@ const handleClosePreview = () => {
 }
 
 const handleTypeChange = () => {
-  // 重置答案
-  if (form.type === 'single') {
-    form.answer = ''
-    form.options = ['', '']
-  } else if (form.type === 'multiple') {
-    form.answer = []
-    form.options = ['', '']
-  } else if (form.type === 'judge') {
-    form.answer = ''
-    form.options = []
-  } else if (form.type === 'fill') {
-    form.answer = ['']
-    form.options = []
+  // 只在用户手动切换类型时重置答案和选项
+  // 如果是从后端加载数据时的类型变化，不应该重置
+  if (form.id === 0) {
+    // 新建题目时才重置
+    if (form.type === 'single') {
+      form.answer = ''
+      form.options = ['', '']
+    } else if (form.type === 'multiple') {
+      form.answer = []
+      form.options = ['', '']
+    } else if (form.type === 'judge') {
+      form.answer = ''
+      form.options = []
+    } else if (form.type === 'fill') {
+      form.answer = ['']
+      form.options = []
+    }
   }
 }
 
@@ -442,20 +446,46 @@ const handleSave = async () => {
     await formRef.value.validate()
     saving.value = true
     
+    // 处理答案字段的转换
+    let correctAnswer = 0
+    if (form.type === 'single') {
+      // 单选题：将选项标签转换为索引
+      const labels = ['A', 'B', 'C', 'D', 'E', 'F']
+      correctAnswer = labels.indexOf(form.answer as string)
+    } else if (form.type === 'multiple') {
+      // 多选题：将选项标签数组转换为位掩码
+      const labels = ['A', 'B', 'C', 'D', 'E', 'F']
+      const answers = form.answer as string[]
+      let mask = 0
+      answers.forEach(ans => {
+        const index = labels.indexOf(ans)
+        if (index >= 0) {
+          mask |= (1 << index)
+        }
+      })
+      correctAnswer = mask
+    } else if (form.type === 'judge') {
+      // 判断题：将true/false转换为索引
+      correctAnswer = form.answer === 'true' ? 0 : 1
+    } else if (form.type === 'fill') {
+      // 填空题：索引设为0，答案存储在explanation中
+      correctAnswer = 0
+    }
+    
     const questionData = {
       content: form.content,
       type: form.type,
       difficulty: form.difficulty,
-      options: (form.type === 'single' || form.type === 'multiple') ? form.options : undefined,
-      answer: form.answer,
-      explanation: form.explanation || undefined,
+      options: (form.type === 'single' || form.type === 'multiple') ? form.options : [],
+      correct_answer: correctAnswer,
+      explanation: form.type === 'fill' ? (form.answer as string[])[0] : form.explanation,
       category_id: parseInt(form.category_id.toString())
     }
     
     await api.put(`/api/v1/admin/questions/${form.id}`, questionData)
     
     ElMessage.success('题目更新成功')
-    router.push('/admin/questions')
+    router.push('/questions')
   } catch (error: any) {
     console.error('更新题目失败:', error)
     ElMessage.error(error.response?.data?.message || '更新题目失败')
@@ -480,15 +510,43 @@ const fetchQuestion = async (id: string) => {
     const response = await api.get(`/api/v1/admin/questions/${id}`)
     const question = response.data.data
     
+    console.log('获取到的题目数据:', question) // 调试日志
+    
     // 填充表单数据
     form.id = question.id
     form.content = question.content
-    form.type = question.type
+    form.type = question.type || 'single'
     form.difficulty = question.difficulty
     form.options = question.options || []
-    form.answer = question.answer
     form.explanation = question.explanation || ''
     form.category_id = question.category_id.toString()
+    
+    console.log('设置后的form.type:', form.type) // 调试日志
+    console.log('设置后的form.options:', form.options) // 调试日志
+    
+    // 处理答案字段的映射
+    if (form.type === 'single') {
+      // 单选题：后端correct_answer是索引，前端需要转换为选项标签
+      const answerIndex = question.correct_answer || 0
+      form.answer = getOptionLabel(answerIndex)
+    } else if (form.type === 'multiple') {
+      // 多选题：后端correct_answer是位掩码，前端需要转换为选项标签数组
+      const answerMask = question.correct_answer || 0
+      const answerLabels = []
+      for (let i = 0; i < form.options.length; i++) {
+        if (answerMask & (1 << i)) {
+          answerLabels.push(getOptionLabel(i))
+        }
+      }
+      form.answer = answerLabels
+    } else if (form.type === 'judge') {
+      // 判断题：后端correct_answer是索引（0=正确，1=错误）
+      const answerIndex = question.correct_answer || 0
+      form.answer = answerIndex === 0 ? 'true' : 'false'
+    } else if (form.type === 'fill') {
+      // 填空题：使用explanation字段存储答案
+      form.answer = question.explanation ? [question.explanation] : ['']
+    }
     
     // 确保选项数组至少有2个元素（对于选择题）
     if ((form.type === 'single' || form.type === 'multiple') && form.options.length < 2) {
@@ -497,20 +555,10 @@ const fetchQuestion = async (id: string) => {
       }
     }
     
-    // 确保填空题答案是数组
-    if (form.type === 'fill' && !Array.isArray(form.answer)) {
-      form.answer = form.answer ? [form.answer.toString()] : ['']
-    }
-    
-    // 确保多选题答案是数组
-    if (form.type === 'multiple' && !Array.isArray(form.answer)) {
-      form.answer = form.answer ? [form.answer.toString()] : []
-    }
-    
   } catch (error: any) {
     console.error('获取题目详情失败:', error)
     ElMessage.error('获取题目详情失败')
-    router.push('/admin/questions')
+    router.push('/questions')
   } finally {
     loading.value = false
   }
@@ -521,7 +569,7 @@ onMounted(async () => {
   const questionId = route.params.id as string
   if (!questionId) {
     ElMessage.error('题目ID不存在')
-    router.push('/admin/questions')
+    router.push('/questions')
     return
   }
   

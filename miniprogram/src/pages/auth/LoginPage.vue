@@ -88,6 +88,9 @@ const handleGuestLogin = async () => {
     // 调用store的游客登录方法
     await authStore.loginAsGuest()
     
+    // 显示成功提示
+    alert('游客登录成功！')
+    
     // 获取重定向地址，如果没有则跳转到首页
     const redirect = route.query.redirect as string
     router.push(redirect || '/')

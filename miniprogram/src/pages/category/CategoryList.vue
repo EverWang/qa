@@ -89,6 +89,13 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">题目列表</h3>
           <div class="flex items-center space-x-2">
+            <!-- 分类筛选器 -->
+            <select v-model="selectedCategoryFilter" @change="onCategoryFilterChange" class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="">全部分类</option>
+              <option v-for="category in allCategories" :key="category.id" :value="category.id">
+                {{ category.parentId ? '　　' + category.name : category.name }}
+              </option>
+            </select>
             <select v-model="sortBy" class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               <option value="default">默认排序</option>
               <option value="difficulty">按难度</option>
@@ -193,6 +200,7 @@ const userProgress = ref<UserProgress>({ answered: 0, correctRate: 0 })
 
 const sortBy = ref('default')
 const difficultyFilter = ref('')
+const selectedCategoryFilter = ref('')
 const isLoading = ref(false)
 const hasMore = ref(true)
 const page = ref(1)
@@ -289,6 +297,45 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString()
 }
 
+// 分类筛选处理
+const onCategoryFilterChange = async () => {
+  try {
+    isLoading.value = true
+    page.value = 1
+    
+    if (selectedCategoryFilter.value) {
+      // 如果选择了特定分类，加载该分类下的题目
+      const categoryIdToFilter = parseInt(selectedCategoryFilter.value)
+      console.log('CategoryList.onCategoryFilterChange 筛选分类:', categoryIdToFilter)
+      
+      const questionsResponse = await QuestionService.getQuestions({
+        page: 1,
+        pageSize: 10,
+        categoryId: categoryIdToFilter
+      })
+      
+      if (questionsResponse.success) {
+        questions.value = questionsResponse.data.items || []
+        hasMore.value = questionsResponse.data.page < questionsResponse.data.totalPages
+        console.log('CategoryList.onCategoryFilterChange 筛选后的题目:', questions.value)
+      } else {
+        console.error('CategoryList.onCategoryFilterChange 筛选题目失败:', questionsResponse.message)
+        questions.value = []
+        hasMore.value = false
+      }
+    } else {
+      // 如果选择了"全部分类"，重新加载当前分类的所有题目
+      await loadCategoryData(categoryId.value || undefined)
+    }
+  } catch (error) {
+    console.error('CategoryList.onCategoryFilterChange 筛选失败:', error)
+    questions.value = []
+    hasMore.value = false
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // 导航方法
 const goBack = () => {
   router.back()
@@ -374,36 +421,54 @@ const buildBreadcrumbs = (categoryId: number) => {
 // 加载分类数据
 const loadCategoryData = async (id?: number) => {
   try {
+    console.log('CategoryList.loadCategoryData 开始加载，分类ID:', id)
     isLoading.value = true
     
     // 首先加载所有分类数据
     if (allCategories.value.length === 0) {
+      console.log('CategoryList.loadCategoryData 加载所有分类')
       const categoriesResponse = await QuestionService.getCategories()
+      console.log('CategoryList.loadCategoryData 分类响应:', categoriesResponse)
       if (categoriesResponse.success) {
-        allCategories.value = categoriesResponse.data.map(addCategoryIcon)
+        allCategories.value = (categoriesResponse.data || []).map(addCategoryIcon)
+        console.log('CategoryList.loadCategoryData 处理后的分类:', allCategories.value)
       }
     }
     
     if (id) {
-      // 加载特定分类
-      const categoryResponse = await QuestionService.getCategory(id)
-      if (categoryResponse.success) {
-        currentCategory.value = addCategoryIcon(categoryResponse.data)
+      console.log('CategoryList.loadCategoryData 加载特定分类:', id)
+      // 加载特定分类 - 从已加载的分类中查找
+      const foundCategory = allCategories.value.find(c => c.id === id)
+      if (foundCategory) {
+        currentCategory.value = foundCategory
+        console.log('CategoryList.loadCategoryData 找到当前分类:', currentCategory.value)
+      } else {
+        console.log('CategoryList.loadCategoryData 未找到分类，尝试从API获取')
+        try {
+           const categoryResponse = await QuestionService.getCategory(id)
+           if (categoryResponse.success) {
+             currentCategory.value = addCategoryIcon(categoryResponse.data)
+             console.log('CategoryList.loadCategoryData API获取的分类:', currentCategory.value)
+           }
+         } catch (error) {
+           console.error('CategoryList.loadCategoryData 获取分类详情失败:', error)
+           currentCategory.value = null
+         }
       }
       
       // 获取子分类
       subCategories.value = allCategories.value.filter(c => c.parentId === id)
+      console.log('CategoryList.loadCategoryData 子分类:', subCategories.value)
       breadcrumbs.value = buildBreadcrumbs(id)
+      console.log('CategoryList.loadCategoryData 面包屑:', breadcrumbs.value)
       
       // 加载用户进度
       if (authStore.isLoggedIn && !authStore.isGuest) {
         try {
-          const progressResponse = await QuestionService.getCategoryProgress(id)
-          if (progressResponse.success) {
-            userProgress.value = {
-              answered: progressResponse.data.totalAnswered,
-              correctRate: Math.round(progressResponse.data.accuracyRate)
-            }
+          // 暂时使用默认值，后续可以实现具体的进度API
+          userProgress.value = {
+            answered: 0,
+            correctRate: 0
           }
         } catch (error) {
           console.error('获取用户进度失败:', error)
@@ -416,29 +481,46 @@ const loadCategoryData = async (id?: number) => {
       }
       
       // 加载该分类下的题目
+      console.log('CategoryList.loadCategoryData 加载分类题目，分类ID:', id)
       const questionsResponse = await QuestionService.getQuestions({
         page: 1,
         pageSize: 10,
         categoryId: id
       })
+      console.log('CategoryList.loadCategoryData 题目响应:', questionsResponse)
       if (questionsResponse.success) {
-        questions.value = questionsResponse.data.items
+        questions.value = questionsResponse.data.items || []
         hasMore.value = questionsResponse.data.page < questionsResponse.data.totalPages
+        console.log('CategoryList.loadCategoryData 加载的题目:', questions.value)
+        console.log('CategoryList.loadCategoryData 是否有更多:', hasMore.value)
+      } else {
+        console.error('CategoryList.loadCategoryData 加载题目失败:', questionsResponse.message || questionsResponse.success)
+        questions.value = []
+        hasMore.value = false
       }
     } else {
+      console.log('CategoryList.loadCategoryData 加载根分类')
       // 加载根分类
       currentCategory.value = null
       subCategories.value = allCategories.value.filter(c => !c.parentId)
       breadcrumbs.value = []
+      console.log('CategoryList.loadCategoryData 根分类子分类:', subCategories.value)
       
       // 加载所有题目
+      console.log('CategoryList.loadCategoryData 加载所有题目')
       const response = await QuestionService.getQuestions({
         page: 1,
         pageSize: 10
       })
+      console.log('CategoryList.loadCategoryData 所有题目响应:', response)
       if (response.success) {
-        questions.value = response.data.items
+        questions.value = response.data.items || []
         hasMore.value = response.data.page < response.data.totalPages
+        console.log('CategoryList.loadCategoryData 加载的所有题目:', questions.value)
+      } else {
+        console.error('CategoryList.loadCategoryData 加载所有题目失败:', response.message || response.success)
+        questions.value = []
+        hasMore.value = false
       }
     }
     
@@ -446,9 +528,12 @@ const loadCategoryData = async (id?: number) => {
     page.value = 1
     
   } catch (error) {
-    console.error('加载分类数据失败:', error)
+    console.error('CategoryList.loadCategoryData 加载分类数据失败:', error)
+    questions.value = []
+    hasMore.value = false
   } finally {
     isLoading.value = false
+    console.log('CategoryList.loadCategoryData 加载完成')
   }
 }
 

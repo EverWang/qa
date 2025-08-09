@@ -75,7 +75,48 @@ export class AuthService {
 
   // 游客登录
   static async loginAsGuest(): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/guest')
+    // 生成或获取设备唯一标识
+    const deviceId = this.getDeviceId()
+    return apiClient.post<LoginResponse>('/auth/guest', {
+      device_id: deviceId
+    })
+  }
+
+  // 获取设备唯一标识
+  private static getDeviceId(): string {
+    // 尝试从本地存储获取设备ID
+    let deviceId = localStorage.getItem('device_id')
+    
+    if (!deviceId) {
+      // 生成新的设备ID（基于浏览器指纹）
+      const userAgent = navigator.userAgent
+      const language = navigator.language
+      const platform = navigator.platform
+      const screenResolution = `${screen.width}x${screen.height}`
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
+      // 组合这些信息生成唯一标识
+      const fingerprint = `${userAgent}-${language}-${platform}-${screenResolution}-${timezone}`
+      
+      // 使用简单的哈希算法生成设备ID
+      deviceId = this.simpleHash(fingerprint)
+      
+      // 保存到本地存储
+      localStorage.setItem('device_id', deviceId)
+    }
+    
+    return deviceId
+  }
+
+  // 简单哈希函数
+  private static simpleHash(str: string): string {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // 转换为32位整数
+    }
+    return Math.abs(hash).toString(36)
   }
 
   // 注册
@@ -315,8 +356,7 @@ export class MockAuthService {
   }
 }
 
-// 根据环境选择使用真实服务还是模拟服务
-const isDevelopment = import.meta.env.DEV
-export const authService = isDevelopment ? MockAuthService : AuthService
+// 使用真实的认证服务
+export const authService = AuthService
 
 export default authService

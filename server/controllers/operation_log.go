@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"qaminiprogram/config"
 	"qaminiprogram/models"
@@ -40,7 +41,11 @@ func GetOperationLogs(c *gin.Context) {
 
 	// 获取总数
 	var total int64
-	query.Count(&total)
+	countErr := query.Count(&total).Error
+	if countErr != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "获取操作日志总数失败")
+		return
+	}
 
 	// 分页查询
 	var logs []models.OperationLog
@@ -79,11 +84,57 @@ func CreateOperationLog(operator, action, resource, description, ip, userAgent s
 // LogOperation 记录操作日志的中间件辅助函数
 func LogOperation(c *gin.Context, action, resource, description string) {
 	// 获取操作人信息
-	operator := "unknown"
-	if username, exists := c.Get("username"); exists {
-		operator = username.(string)
+	operator := "Unknown"
+	
+	// 尝试从JWT中获取用户ID和角色
+	if userID, exists := c.Get("user_id"); exists {
+		if role, roleExists := c.Get("role"); roleExists {
+			db := config.GetDB()
+			
+			// 确保userID是正确的类型
+			var uid uint
+			switch v := userID.(type) {
+			case uint:
+				uid = v
+			case float64:
+				uid = uint(v)
+			default:
+				// 如果类型转换失败，使用默认值
+				operator = "Unknown(类型错误)"
+				goto createLog
+			}
+			
+			if role == "admin" {
+				// 管理员用户，查询管理员表
+				var admin models.Admin
+				if err := db.Where("id = ?", uid).First(&admin).Error; err == nil {
+					operator = admin.Username
+				} else {
+					operator = fmt.Sprintf("Admin_%d", uid)
+				}
+			} else {
+				// 普通用户，查询用户表
+				var user models.User
+				if err := db.Where("id = ?", uid).First(&user).Error; err == nil {
+					if user.Nickname != "" {
+						operator = user.Nickname
+					} else if user.OpenID != nil && len(*user.OpenID) >= 8 {
+						operator = "用户" + (*user.OpenID)[:8] // 使用OpenID前8位作为标识
+					} else {
+						operator = fmt.Sprintf("User_%d", uid)
+					}
+				} else {
+					operator = fmt.Sprintf("User_%d", uid)
+				}
+			}
+		} else {
+			operator = "Unknown(无角色)"
+		}
+	} else {
+		operator = "Unknown(无用户ID)"
 	}
 
+createLog:
 	// 获取客户端信息
 	ip := c.ClientIP()
 	userAgent := c.GetHeader("User-Agent")

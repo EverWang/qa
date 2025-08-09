@@ -59,6 +59,8 @@ func migrateDatabase() {
 		&models.AnswerRecord{},
 		&models.MistakeBook{},
 		&models.Admin{},
+		&models.SystemSetting{},
+		&models.OperationLog{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
@@ -71,29 +73,87 @@ func initializeDefaultData() {
 	// 检查是否已存在管理员
 	var adminCount int64
 	DB.Model(&models.Admin{}).Count(&adminCount)
-	if adminCount > 0 {
-		log.Println("Admin user already exists, skipping initialization")
-		return
+	if adminCount == 0 {
+		// 创建默认管理员账号
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("Failed to hash password: %v", err)
+		} else {
+			admin := models.Admin{
+				Username:     "admin",
+				PasswordHash: string(passwordHash),
+				Email:        "admin@example.com",
+				Role:         "admin",
+			}
+
+			if err := DB.Create(&admin).Error; err != nil {
+				log.Printf("Failed to create default admin: %v", err)
+			} else {
+				log.Println("Default admin user created successfully (username: admin, password: 123456)")
+			}
+		}
 	}
 
-	// 创建默认管理员账号
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("Failed to hash password: %v", err)
-		return
+	// 检查是否已存在系统设置
+	var settingsCount int64
+	DB.Model(&models.SystemSetting{}).Count(&settingsCount)
+	if settingsCount == 0 {
+		// 创建默认系统设置
+		basicSettings := models.SystemSetting{
+			Key:   "basic",
+			Value: `{"system_name":"刷刷题","system_description":"专业的在线刷题平台","system_version":"1.0.0","contact_email":"admin@example.com","system_status":"normal","maintenance_notice":""}`,
+		}
+		quizSettings := models.SystemSetting{
+			Key:   "quiz",
+			Value: `{"daily_limit":0,"time_limit":0,"enable_points":true,"correct_points":1,"wrong_points":0,"quiz_modes":["random","category"],"show_explanation":"after_answer"}`,
+		}
+
+		if err := DB.Create(&basicSettings).Error; err != nil {
+			log.Printf("Failed to create basic settings: %v", err)
+		}
+		if err := DB.Create(&quizSettings).Error; err != nil {
+			log.Printf("Failed to create quiz settings: %v", err)
+		}
+		log.Println("Default system settings created successfully")
 	}
 
-	admin := models.Admin{
-		Username:     "admin",
-		PasswordHash: string(passwordHash),
-		Email:        "admin@example.com",
-		Role:         "admin",
-	}
+	// 检查是否已存在操作日志
+	var logCount int64
+	DB.Model(&models.OperationLog{}).Count(&logCount)
+	if logCount == 0 {
+		// 创建一些测试操作日志
+		testLogs := []models.OperationLog{
+			{
+				Operator:    "admin",
+				Action:      "login",
+				Resource:    "系统",
+				Description: "管理员登录系统",
+				IP:          "127.0.0.1",
+				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			},
+			{
+				Operator:    "admin",
+				Action:      "create",
+				Resource:    "题目",
+				Description: "创建题目：测试题目",
+				IP:          "127.0.0.1",
+				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			},
+			{
+				Operator:    "admin",
+				Action:      "update",
+				Resource:    "分类",
+				Description: "更新分类信息",
+				IP:          "127.0.0.1",
+				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			},
+		}
 
-	if err := DB.Create(&admin).Error; err != nil {
-		log.Printf("Failed to create default admin: %v", err)
-		return
+		for _, testLog := range testLogs {
+			if err := DB.Create(&testLog).Error; err != nil {
+				log.Printf("Failed to create test operation log: %v", err)
+			}
+		}
+		log.Println("Test operation logs created successfully")
 	}
-
-	log.Println("Default admin user created successfully (username: admin, password: 123456)")
 }

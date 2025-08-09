@@ -169,7 +169,7 @@ import {
   ArrowLeft, CheckCircle, Trash2, RotateCcw, Eye, BookmarkMinus
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { QuestionService, type Question, type Category, type MistakeBook } from '@/services/question'
+import { questionService, type Question, type Category, type MistakeBook } from '@/services/question'
 
 interface MistakeQuestion extends MistakeBook {
   question: Question
@@ -331,7 +331,7 @@ const removeMistake = async (mistakeId: number) => {
   }
   
   try {
-    await QuestionService.removeFromMistakeBook(mistakeId)
+    await questionService.removeFromMistakeBook(mistakeId)
     
     const index = mistakeQuestions.value.findIndex(m => m.id === mistakeId)
     if (index > -1) {
@@ -349,7 +349,7 @@ const clearAllMistakes = async () => {
   }
   
   try {
-    const response = await QuestionService.clearMistakeBook()
+    const response = await questionService.clearMistakeBook()
     if (response.success) {
       mistakeQuestions.value = []
       alert(`错题本已清空，共删除 ${response.data.deleted_count} 道题目`)
@@ -369,7 +369,7 @@ const resetFilters = () => {
 // 加载数据
 const loadMistakeQuestions = async () => {
   try {
-    const response = await QuestionService.getMistakeBook({
+    const response = await questionService.getMistakeBook({
       page: 1,
       pageSize: 100 // 加载所有错题
     })
@@ -387,12 +387,18 @@ const loadMistakeQuestions = async () => {
     }
   } catch (error) {
     console.error('加载错题本失败:', error)
+    if (error.message.includes('登录已过期')) {
+      alert('登录已过期，请重新登录')
+      router.push('/auth/login')
+    } else {
+      alert('加载错题本失败，请重试')
+    }
   }
 }
 
 const loadCategories = async () => {
   try {
-    const response = await QuestionService.getCategories()
+    const response = await questionService.getCategories()
     if (response.success) {
       categories.value = response.data
     }
@@ -402,12 +408,7 @@ const loadCategories = async () => {
 }
 
 onMounted(() => {
-  if (authStore.isGuest) {
-    alert('请先登录后使用错题本功能')
-    router.push('/auth/login')
-    return
-  }
-  
+  // 游客也可以使用错题本功能
   loadMistakeQuestions()
   loadCategories()
 })

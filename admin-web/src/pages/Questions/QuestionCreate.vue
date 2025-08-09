@@ -409,6 +409,7 @@ const handleSave = async () => {
     const submitData = {
       title: form.content.trim(), // 后端期望title字段
       content: form.content.trim(),
+      type: form.type, // 添加缺失的type字段
       options: (form.type === 'single' || form.type === 'multiple') 
         ? form.options.filter(opt => opt.trim()) 
         : ['true', 'false'], // 判断题和填空题也需要提供options

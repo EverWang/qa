@@ -96,6 +96,7 @@ func SetupRoutes(r *gin.Engine) {
 			
 			// 题目管理
 			adminAuth.GET("/questions", controllers.GetAdminQuestions)
+			adminAuth.GET("/questions/:id", controllers.GetQuestionByID)
 			adminAuth.POST("/questions", controllers.CreateQuestion)
 			adminAuth.PUT("/questions/:id", controllers.UpdateQuestion)
 			adminAuth.DELETE("/questions/:id", controllers.DeleteQuestion)
@@ -110,6 +111,17 @@ func SetupRoutes(r *gin.Engine) {
 			
 			// 操作日志
 			adminAuth.GET("/operation-logs", controllers.GetOperationLogs)
+			adminAuth.GET("/logs", controllers.GetOperationLogs)
+			
+			// 系统设置
+			adminAuth.GET("/settings/basic", controllers.GetBasicSettings)
+			adminAuth.PUT("/settings/basic", controllers.UpdateBasicSettings)
+			adminAuth.GET("/settings/quiz", controllers.GetQuizSettings)
+			adminAuth.PUT("/settings/quiz", controllers.UpdateQuizSettings)
+			
+			// 系统统计
+			adminAuth.GET("/statistics", controllers.GetSystemStatistics)
+			adminAuth.GET("/statistics/export", controllers.ExportStatistics)
 		}
 	}
 

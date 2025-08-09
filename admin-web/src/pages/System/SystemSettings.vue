@@ -242,72 +242,7 @@
           </div>
         </el-tab-pane>
 
-        <!-- 操作日志 -->
-        <el-tab-pane label="操作日志" name="logs">
-          <el-card>
-            <template #header>
-              <div class="card-header">
-                <span>系统操作日志</span>
-                <div class="log-filters">
-                  <el-select v-model="logFilter.type" placeholder="操作类型" clearable style="width: 120px">
-                    <el-option label="登录" value="login" />
-                    <el-option label="创建" value="create" />
-                    <el-option label="更新" value="update" />
-                    <el-option label="删除" value="delete" />
-                  </el-select>
-                  <el-date-picker
-                    v-model="logFilter.date_range"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="开始日期"
-                    end-placeholder="结束日期"
-                    format="YYYY-MM-DD"
-                    value-format="YYYY-MM-DD"
-                    style="width: 240px"
-                  />
-                  <el-button type="primary" @click="fetchLogs">
-                    <el-icon><Search /></el-icon>
-                    查询
-                  </el-button>
-                </div>
-              </div>
-            </template>
-            
-            <el-table :data="logs" v-loading="loadingLogs" border>
-              <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column prop="user_name" label="操作用户" width="120" />
-              <el-table-column prop="action" label="操作类型" width="100">
-                <template #default="{ row }">
-                  <el-tag :type="getActionTagType(row.action)" size="small">
-                    {{ getActionLabel(row.action) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="resource" label="操作对象" width="120" />
-              <el-table-column prop="description" label="操作描述" min-width="200" />
-              <el-table-column prop="ip_address" label="IP地址" width="140" />
-              <el-table-column prop="user_agent" label="用户代理" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="created_at" label="操作时间" width="160">
-                <template #default="{ row }">
-                  {{ formatDate(row.created_at) }}
-                </template>
-              </el-table-column>
-            </el-table>
-            
-            <!-- 分页 -->
-            <div class="pagination-wrapper">
-              <el-pagination
-                v-model:current-page="logPagination.page"
-                v-model:page-size="logPagination.size"
-                :page-sizes="[10, 20, 50, 100]"
-                :total="logTotal"
-                layout="total, sizes, prev, pager, next, jumper"
-                @size-change="handleLogSizeChange"
-                @current-change="handleLogPageChange"
-              />
-            </div>
-          </el-card>
-        </el-tab-pane>
+
       </el-tabs>
     </div>
   </div>
@@ -318,8 +253,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance } from 'element-plus'
 import {
   Refresh,
-  Download,
-  Search
+  Download
 } from '@element-plus/icons-vue'
 import { api } from '@/lib/axios'
 
@@ -360,22 +294,13 @@ interface Statistics {
   }>
 }
 
-interface Log {
-  id: number
-  user_name: string
-  action: string
-  resource: string
-  description: string
-  ip_address: string
-  user_agent: string
-  created_at: string
-}
+
 
 // 响应式数据
 const activeTab = ref('basic')
 const saving = ref(false)
 const loadingStats = ref(false)
-const loadingLogs = ref(false)
+
 const basicFormRef = ref<FormInstance>()
 const quizFormRef = ref<FormInstance>()
 
@@ -410,17 +335,6 @@ const statistics = reactive<Statistics>({
   answer_stats: []
 })
 
-// 日志相关
-const logs = ref<Log[]>([])
-const logTotal = ref(0)
-const logFilter = reactive({
-  type: '',
-  date_range: [] as string[]
-})
-const logPagination = reactive({
-  page: 1,
-  size: 20
-})
 
 // 表单验证规则
 const basicRules = {
@@ -449,7 +363,7 @@ const handleSaveBasic = async () => {
     await basicFormRef.value.validate()
     saving.value = true
     
-    await api.put('/admin/settings/basic', basicForm)
+    await api.put('/api/v1/admin/settings/basic', basicForm)
     ElMessage.success('基础设置保存成功')
   } catch (error: any) {
     console.error('保存基础设置失败:', error)
@@ -466,7 +380,7 @@ const handleSaveQuiz = async () => {
     await quizFormRef.value.validate()
     saving.value = true
     
-    await api.put('/admin/settings/quiz', quizForm)
+    await api.put('/api/v1/admin/settings/quiz', quizForm)
     ElMessage.success('答题设置保存成功')
   } catch (error: any) {
     console.error('保存答题设置失败:', error)
@@ -479,8 +393,8 @@ const handleSaveQuiz = async () => {
 const fetchSettings = async () => {
   try {
     const [basicResponse, quizResponse] = await Promise.all([
-      api.get('/admin/settings/basic'),
-      api.get('/admin/settings/quiz')
+      api.get('/api/v1/admin/settings/basic'),
+      api.get('/api/v1/admin/settings/quiz')
     ])
     
     Object.assign(basicForm, basicResponse.data)
@@ -494,7 +408,7 @@ const fetchSettings = async () => {
 const fetchStatistics = async () => {
   try {
     loadingStats.value = true
-    const response = await api.get('/admin/statistics')
+    const response = await api.get('/api/v1/admin/statistics')
     Object.assign(statistics, response.data)
   } catch (error) {
     console.error('获取统计数据失败:', error)
@@ -506,7 +420,7 @@ const fetchStatistics = async () => {
 
 const exportStatistics = async () => {
   try {
-    const response = await api.get('/admin/statistics/export', {
+    const response = await api.get('/api/v1/admin/statistics/export', {
       responseType: 'blob'
     })
     
@@ -528,75 +442,12 @@ const exportStatistics = async () => {
   }
 }
 
-const fetchLogs = async () => {
-  try {
-    loadingLogs.value = true
-    
-    const params = {
-      page: logPagination.page,
-      size: logPagination.size,
-      type: logFilter.type || undefined,
-      start_date: logFilter.date_range[0] || undefined,
-      end_date: logFilter.date_range[1] || undefined
-    }
-    
-    const response = await api.get('/admin/logs', { params })
-    const data = response.data
-    
-    logs.value = data.data || []
-    logTotal.value = data.total || 0
-  } catch (error) {
-    console.error('获取操作日志失败:', error)
-    ElMessage.error('获取操作日志失败')
-  } finally {
-    loadingLogs.value = false
-  }
-}
 
-const handleLogPageChange = (page: number) => {
-  logPagination.page = page
-  fetchLogs()
-}
-
-const handleLogSizeChange = (size: number) => {
-  logPagination.size = size
-  logPagination.page = 1
-  fetchLogs()
-}
-
-const getActionLabel = (action: string) => {
-  const actionMap: Record<string, string> = {
-    login: '登录',
-    create: '创建',
-    update: '更新',
-    delete: '删除',
-    export: '导出',
-    import: '导入'
-  }
-  return actionMap[action] || action
-}
-
-const getActionTagType = (action: string) => {
-  const typeMap: Record<string, string> = {
-    login: 'success',
-    create: 'primary',
-    update: 'warning',
-    delete: 'danger',
-    export: 'info',
-    import: 'info'
-  }
-  return typeMap[action] || 'info'
-}
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString('zh-CN')
-}
 
 // 生命周期
 onMounted(() => {
   fetchSettings()
   fetchStatistics()
-  fetchLogs()
 })
 </script>
 

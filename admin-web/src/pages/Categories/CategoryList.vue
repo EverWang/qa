@@ -30,8 +30,8 @@
               clearable
               style="width: 120px"
             >
-              <el-option label="启用" value="active" />
-              <el-option label="禁用" value="inactive" />
+              <el-option label="启用" :value="1" />
+              <el-option label="禁用" :value="0" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -302,7 +302,7 @@ const total = ref(0)
 // 搜索表单
 const searchForm = reactive({
   name: '',
-  status: ''
+  status: '' as string | number
 })
 
 // 移除分页相关代码，因为使用树形数据

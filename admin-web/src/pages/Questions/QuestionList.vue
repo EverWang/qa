@@ -257,6 +257,7 @@ const fetchQuestions = async () => {
       page: pagination.page,
       size: pagination.size,
       keyword: searchForm.content || undefined,
+      type: searchForm.type || undefined, // 添加题目类型筛选参数
       category_id: searchForm.categoryId || undefined,
       difficulty: searchForm.difficulty || undefined
     }

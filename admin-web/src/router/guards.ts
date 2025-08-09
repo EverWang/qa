@@ -78,8 +78,8 @@ function checkPermission(path: string, userRole?: string): boolean {
     '/questions/import',
     '/categories',
     '/users',
-    '/system/settings',
-    '/system/logs'
+    '/settings',
+    '/operation-logs'
   ]
   
   // 根据用户角色检查权限
@@ -106,8 +106,8 @@ function getPageTitle(path: string): string {
     '/questions/import': '批量导入 - 刷刷题管理后台',
     '/categories': '分类管理 - 刷刷题管理后台',
     '/users': '用户管理 - 刷刷题管理后台',
-    '/system/settings': '系统设置 - 刷刷题管理后台',
-    '/system/logs': '操作日志 - 刷刷题管理后台'
+    '/settings': '系统设置 - 刷刷题管理后台',
+    '/operation-logs': '操作日志 - 刷刷题管理后台'
   }
   
   return titleMap[path] || '刷刷题管理后台'

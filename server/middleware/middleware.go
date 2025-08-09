@@ -17,8 +17,16 @@ func CORS() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
 		
-		if allowedOrigins == "*" || strings.Contains(allowedOrigins, origin) {
+		// 如果配置为*或包含请求的origin，则允许
+		if allowedOrigins == "*" {
+			c.Header("Access-Control-Allow-Origin", "*")
+		} else if origin != "" && strings.Contains(allowedOrigins, origin) {
 			c.Header("Access-Control-Allow-Origin", origin)
+		} else if origin != "" {
+			// 开发环境下允许localhost
+			if strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1") {
+				c.Header("Access-Control-Allow-Origin", origin)
+			}
 		}
 		
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -115,4 +116,18 @@ func ParseIDParam(c *gin.Context, paramName string) (uint, error) {
 		return 0, err
 	}
 	return uint(id), nil
+}
+
+// parseJSONValue 解析JSON字符串到结构体
+func parseJSONValue(jsonStr string, v interface{}) error {
+	return json.Unmarshal([]byte(jsonStr), v)
+}
+
+// toJSONString 将结构体转换为JSON字符串
+func toJSONString(v interface{}) (string, error) {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }

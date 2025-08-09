@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"qaminiprogram/config"
 	"qaminiprogram/models"
@@ -19,10 +20,12 @@ type CreateCategoryRequest struct {
 
 // UpdateCategoryRequest 更新分类请求
 type UpdateCategoryRequest struct {
-	Name     string `json:"name"`
-	ParentID *uint  `json:"parent_id"`
-	Level    *int   `json:"level"`
-	Sort     *int   `json:"sort"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ParentID    *uint  `json:"parent_id"`
+	Level       *int   `json:"level"`
+	SortOrder   *int   `json:"sort_order"`
+	Status      *int   `json:"status"`
 }
 
 // CategoryTreeNode 分类树节点
@@ -68,6 +71,13 @@ func GetCategories(c *gin.Context) {
 		return
 	}
 
+	// 为每个分类添加题目数量
+	for i := range categories {
+		var questionCount int64
+		db.Model(&models.Question{}).Where("category_id = ?", categories[i].ID).Count(&questionCount)
+		categories[i].QuestionCount = int(questionCount)
+	}
+
 	SuccessResponse(c, categories)
 }
 
@@ -76,12 +86,13 @@ func GetAdminCategories(c *gin.Context) {
 	tree := c.DefaultQuery("tree", "false")
 	parentID := c.Query("parent_id")
 	search := c.Query("search")
+	status := c.Query("status")
 
 	db := config.GetDB()
 
 	if tree == "true" {
 		// 返回树形结构
-		categoryTree, err := buildCategoryTree(db)
+		categoryTree, err := buildCategoryTreeWithFilter(db, search, status)
 		if err != nil {
 			ErrorResponse(c, http.StatusInternalServerError, "获取分类树失败")
 			return
@@ -100,6 +111,11 @@ func GetAdminCategories(c *gin.Context) {
 	// 搜索条件
 	if search != "" {
 		query = query.Where("name LIKE ?", "%"+search+"%")
+	}
+
+	// 状态筛选
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	// 父分类筛选
@@ -199,6 +215,9 @@ func CreateCategory(c *gin.Context) {
 	// 预加载关联数据
 	db.Preload("Parent").First(&category, category.ID)
 
+	// 记录操作日志
+	LogOperation(c, "CREATE", "CATEGORY", fmt.Sprintf("创建分类: %s", category.Name))
+
 	SuccessResponse(c, category)
 }
 
@@ -243,14 +262,20 @@ func UpdateCategory(c *gin.Context) {
 	if req.Name != "" {
 		category.Name = req.Name
 	}
+	if req.Description != "" {
+		category.Description = req.Description
+	}
 	if req.ParentID != nil {
 		category.ParentID = req.ParentID
 	}
 	if req.Level != nil {
 		category.Level = *req.Level
 	}
-	if req.Sort != nil {
-		category.Sort = *req.Sort
+	if req.SortOrder != nil {
+		category.Sort = *req.SortOrder
+	}
+	if req.Status != nil {
+		category.Status = *req.Status
 	}
 
 	if err := db.Save(&category).Error; err != nil {
@@ -260,6 +285,9 @@ func UpdateCategory(c *gin.Context) {
 
 	// 预加载关联数据
 	db.Preload("Parent").First(&category, category.ID)
+
+	// 记录操作日志
+	LogOperation(c, "UPDATE", "CATEGORY", fmt.Sprintf("更新分类: %s", category.Name))
 
 	SuccessResponse(c, category)
 }
@@ -290,10 +318,18 @@ func DeleteCategory(c *gin.Context) {
 		return
 	}
 
+	// 获取分类名称用于日志记录
+	var category models.Category
+	db.Where("id = ?", id).First(&category)
+	categoryName := category.Name
+
 	if err := db.Delete(&models.Category{}, id).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "删除分类失败")
 		return
 	}
+
+	// 记录操作日志
+	LogOperation(c, "DELETE", "CATEGORY", fmt.Sprintf("删除分类: %s", categoryName))
 
 	SuccessResponse(c, gin.H{"message": "删除成功"})
 }
@@ -307,10 +343,16 @@ func UpdateCategoryStatus(c *gin.Context) {
 	}
 
 	var req struct {
-		Status int `json:"status" binding:"required"`
+		Status *int `json:"status" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "参数错误")
+		return
+	}
+
+	// 验证状态值
+	if req.Status == nil || (*req.Status != 0 && *req.Status != 1) {
+		ErrorResponse(c, http.StatusBadRequest, "状态值必须为0或1")
 		return
 	}
 
@@ -322,20 +364,52 @@ func UpdateCategoryStatus(c *gin.Context) {
 	}
 
 	// 更新状态
-	category.Status = req.Status
+	oldStatus := category.Status
+	category.Status = *req.Status
 	if err := db.Save(&category).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "更新分类状态失败")
 		return
 	}
+
+	// 记录操作日志
+	statusText := "禁用"
+	if *req.Status == 1 {
+		statusText = "启用"
+	}
+	LogOperation(c, "UPDATE_STATUS", "CATEGORY", fmt.Sprintf("将分类 %s 状态从 %d 更新为 %s", category.Name, oldStatus, statusText))
 
 	SuccessResponse(c, gin.H{"message": "状态更新成功"})
 }
 
 // buildCategoryTree 构建分类树
 func buildCategoryTree(db *gorm.DB) ([]CategoryTreeNode, error) {
+	return buildCategoryTreeWithFilter(db, "", "")
+}
+
+// buildCategoryTreeWithFilter 构建带筛选条件的分类树
+func buildCategoryTreeWithFilter(db *gorm.DB, search, status string) ([]CategoryTreeNode, error) {
 	var categories []models.Category
-	if err := db.Order("level ASC, sort ASC").Find(&categories).Error; err != nil {
+	query := db.Model(&models.Category{})
+	
+	// 添加搜索条件
+	if search != "" {
+		query = query.Where("name LIKE ?", "%"+search+"%")
+	}
+	
+	// 添加状态筛选
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	
+	if err := query.Order("level ASC, sort ASC").Find(&categories).Error; err != nil {
 		return nil, err
+	}
+
+	// 为每个分类添加题目数量
+	for i := range categories {
+		var questionCount int64
+		db.Model(&models.Question{}).Where("category_id = ?", categories[i].ID).Count(&questionCount)
+		categories[i].QuestionCount = int(questionCount)
 	}
 
 	// 使用指针映射来确保修改能够正确反映

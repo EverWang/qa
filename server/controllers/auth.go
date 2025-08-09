@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -186,6 +187,9 @@ func AdminLogin(c *gin.Context) {
 		return
 	}
 
+	// 记录操作日志
+	LogOperation(c, "LOGIN", "ADMIN", fmt.Sprintf("管理员登录: %s", admin.Username))
+
 	// 返回登录结果，使用user字段以匹配前端期望
 	SuccessResponse(c, AdminLoginResponse{
 		Token:    token,
@@ -225,21 +229,49 @@ func AdminLogout(c *gin.Context) {
 	})
 }
 
+// GuestLoginRequest 游客登录请求
+type GuestLoginRequest struct {
+	DeviceID string `json:"device_id"` // 设备唯一标识
+}
+
 // GuestLogin 游客登录
 func GuestLogin(c *gin.Context) {
 	db := config.GetDB()
 	
-	// 创建游客用户
-	user := models.User{
-		Nickname: "游客" + generateRandomString(6),
-		Avatar:   "",
-		Role:     "guest",
-		IsGuest:  true,
+	// 尝试从请求体中获取设备ID
+	var req GuestLoginRequest
+	c.ShouldBindJSON(&req)
+	
+	// 如果没有提供设备ID，从请求头中获取或生成一个
+	deviceID := req.DeviceID
+	if deviceID == "" {
+		// 尝试从请求头获取设备标识
+		deviceID = c.GetHeader("X-Device-ID")
+		if deviceID == "" {
+			// 使用IP地址和User-Agent生成设备标识
+			clientIP := c.ClientIP()
+			userAgent := c.GetHeader("User-Agent")
+			deviceID = fmt.Sprintf("%x", sha256.Sum256([]byte(clientIP+userAgent)))
+		}
 	}
 	
-	if err := db.Create(&user).Error; err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "创建游客用户失败")
-		return
+	var user models.User
+	
+	// 首先尝试查找已存在的游客用户
+	if err := db.Where("username = ? AND is_guest = true", "guest_"+deviceID).First(&user).Error; err != nil {
+		// 如果没有找到，创建新的游客用户
+		user = models.User{
+			Username: "guest_" + deviceID,
+			Nickname: "游客" + generateRandomString(6),
+			Avatar:   "",
+			Role:     "guest",
+			IsGuest:  true,
+		}
+		
+		if err := db.Create(&user).Error; err != nil {
+			ErrorResponse(c, http.StatusInternalServerError, "创建游客用户失败")
+			return
+		}
 	}
 	
 	// 生成JWT令牌
@@ -249,6 +281,9 @@ func GuestLogin(c *gin.Context) {
 		return
 	}
 	
+	// 记录操作日志
+	LogOperation(c, "LOGIN", "GUEST", fmt.Sprintf("游客登录: %s", user.Username))
+
 	// 返回登录结果
 	SuccessResponse(c, GuestLoginResponse{
 		Token:    token,

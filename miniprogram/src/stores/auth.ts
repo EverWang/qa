@@ -92,6 +92,11 @@ export const useAuthStore = defineStore('auth', () => {
         setUser(response.data.user)
         setToken(response.data.token)
         
+        // 游客不需要获取统计信息，但需要保存refresh token（如果有）
+        if (response.data.refreshToken) {
+          localStorage.setItem('refresh_token', response.data.refreshToken)
+        }
+        
         return response.data
       } else {
         throw new Error(response.message)

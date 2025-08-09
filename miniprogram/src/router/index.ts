@@ -8,6 +8,8 @@ import MistakeBook from '@/pages/user/MistakeBook.vue'
 import CategoryList from '@/pages/category/CategoryList.vue'
 import SearchPage from '@/pages/search/SearchPage.vue'
 import SettingsPage from '@/pages/user/SettingsPage.vue'
+import ApiTest from '@/pages/test/ApiTest.vue'
+import CategoryTest from '@/pages/test/CategoryTest.vue'
 
 // 定义路由配置
 const routes = [
@@ -64,6 +66,24 @@ const routes = [
     name: 'settings',
     component: SettingsPage,
     meta: { title: '设置', requiresAuth: true }
+  },
+  {
+    path: '/test/api',
+    name: 'apiTest',
+    component: ApiTest,
+    meta: { title: 'API测试' }
+  },
+  {
+    path: '/test/debug',
+    name: 'debugApi',
+    component: () => import('@/pages/test/DebugApi.vue'),
+    meta: { title: 'API调试' }
+  },
+  {
+    path: '/test/category',
+    name: 'categoryTest',
+    component: CategoryTest,
+    meta: { title: '分类测试' }
   }
 ]
 
@@ -93,14 +113,8 @@ router.beforeEach((to, from, next) => {
     // 检查用户信息是否有效
     try {
       const user = JSON.parse(userInfo)
-      if (user && user.id && user.id > 0) {
-        // 对于某些页面，游客用户不能访问
-        if (to.name === 'mistakeBook' && user.isGuest === true) {
-          alert('错题本功能需要正式登录，游客无法使用')
-          next({ name: 'login', query: { redirect: to.fullPath } })
-          return
-        }
-        // 正式用户和游客用户都可以访问其他需要认证的页面
+      if (user && (user.id > 0 || user.isGuest)) {
+        // 正式用户和游客用户都可以访问需要认证的页面
         next()
         return
       }
