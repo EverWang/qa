@@ -52,7 +52,7 @@
       <!-- 学习统计 -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">学习统计</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div v-if="!authStore.isGuest" class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="text-center p-4 bg-blue-50 rounded-lg">
             <div class="text-2xl font-bold text-blue-600">{{ stats.totalAnswered }}</div>
             <div class="text-sm text-gray-600 mt-1">已答题目</div>
@@ -69,6 +69,18 @@
             <div class="text-2xl font-bold text-purple-600">{{ stats.studyDays }}</div>
             <div class="text-sm text-gray-600 mt-1">学习天数</div>
           </div>
+        </div>
+        <div v-else class="text-center py-8">
+          <div class="text-gray-400 mb-4">
+            <Trophy class="w-12 h-12 mx-auto mb-3" />
+          </div>
+          <p class="text-gray-500 mb-4">登录后查看详细学习统计</p>
+          <button 
+            @click="goToLogin"
+            class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200"
+          >
+            立即登录
+          </button>
         </div>
       </div>
 
@@ -137,7 +149,7 @@
           <h3 class="text-lg font-semibold text-gray-800">最近学习</h3>
         </div>
         <div class="p-4">
-          <div v-if="recentQuestions.length > 0" class="space-y-3">
+          <div v-if="!authStore.isGuest && recentQuestions.length > 0" class="space-y-3">
             <div 
               v-for="question in recentQuestions"
               :key="question.id"
@@ -159,6 +171,16 @@
                 <ChevronRight class="w-4 h-4 text-gray-400" />
               </div>
             </div>
+          </div>
+          <div v-else-if="authStore.isGuest" class="text-center py-8">
+            <BookOpen class="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p class="text-gray-500 mb-4">登录后查看答题记录</p>
+            <button 
+              @click="goToLogin"
+              class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+              立即登录
+            </button>
           </div>
           <div v-else class="text-center py-8 text-gray-500">
             <BookOpen class="w-12 h-12 mx-auto mb-3 text-gray-300" />

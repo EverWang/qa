@@ -251,17 +251,25 @@ func GuestLogin(c *gin.Context) {
 			// 使用IP地址和User-Agent生成设备标识
 			clientIP := c.ClientIP()
 			userAgent := c.GetHeader("User-Agent")
-			deviceID = fmt.Sprintf("%x", sha256.Sum256([]byte(clientIP+userAgent)))
+			hash := sha256.Sum256([]byte(clientIP + userAgent))
+			// 只取前16个字符的哈希值，确保用户名不超过50字符限制
+			deviceID = fmt.Sprintf("%x", hash)[:16]
 		}
 	}
 	
 	var user models.User
 	
+	// 生成游客用户名，确保不超过50字符
+	guestUsername := "guest_" + deviceID
+	if len(guestUsername) > 50 {
+		guestUsername = guestUsername[:50]
+	}
+	
 	// 首先尝试查找已存在的游客用户
-	if err := db.Where("username = ? AND is_guest = true", "guest_"+deviceID).First(&user).Error; err != nil {
+	if err := db.Where("username = ? AND is_guest = true", guestUsername).First(&user).Error; err != nil {
 		// 如果没有找到，创建新的游客用户
 		user = models.User{
-			Username: "guest_" + deviceID,
+			Username: guestUsername,
 			Nickname: "游客" + generateRandomString(6),
 			Avatar:   "",
 			Role:     "guest",

@@ -119,8 +119,11 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (error) {
       console.error('获取用户信息失败:', error)
-      // 如果获取用户信息失败，可能token已过期，执行登出
-      logout()
+      // 如果是游客用户，不执行登出操作
+      if (!isGuest.value) {
+        // 如果获取用户信息失败，可能token已过期，执行登出
+        logout()
+      }
     }
   }
 
@@ -199,7 +202,16 @@ export const useAuthStore = defineStore('auth', () => {
         }
       } catch (error) {
         console.error('初始化认证状态失败:', error)
+        // 如果验证失败，清除无效的认证信息并执行游客登录
         logout()
+        await loginAsGuest()
+      }
+    } else {
+      // 如果没有保存的认证信息，自动执行游客登录
+      try {
+        await loginAsGuest()
+      } catch (error) {
+        console.error('自动游客登录失败:', error)
       }
     }
   }

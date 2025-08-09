@@ -89,24 +89,11 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold text-gray-800">题目列表</h3>
           <div class="flex items-center space-x-2">
-            <!-- 分类筛选器 -->
-            <select v-model="selectedCategoryFilter" @change="onCategoryFilterChange" class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="">全部分类</option>
-              <option v-for="category in allCategories" :key="category.id" :value="category.id">
-                {{ category.parentId ? '　　' + category.name : category.name }}
-              </option>
-            </select>
-            <select v-model="sortBy" class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="default">默认排序</option>
-              <option value="difficulty">按难度</option>
-              <option value="latest">最新题目</option>
-            </select>
-            <select v-model="difficultyFilter" class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="">全部难度</option>
-              <option value="easy">简单</option>
-              <option value="medium">中等</option>
-              <option value="hard">困难</option>
-            </select>
+            <!-- 筛选按钮 -->
+            <button @click="showFilterModal = true" class="text-sm bg-blue-50 text-blue-600 border border-blue-200 rounded-lg px-3 py-2 flex items-center space-x-1">
+              <Filter class="w-4 h-4" />
+              <span>筛选</span>
+            </button>
           </div>
         </div>
 
@@ -163,6 +150,87 @@
         </button>
       </div>
     </div>
+
+    <!-- 筛选弹窗 -->
+    <div v-if="showFilterModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+      <div class="bg-white w-full rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">筛选条件</h3>
+          <button @click="showFilterModal = false" class="p-2 hover:bg-gray-100 rounded-full">
+            <X class="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <!-- 分类筛选 -->
+        <div class="mb-6">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">分类</h4>
+          <div class="space-y-2">
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="selectedCategoryFilter" value="" class="text-blue-600">
+              <span class="text-sm text-gray-700">全部分类</span>
+            </label>
+            <label v-for="category in allCategories" :key="category.id" class="flex items-center space-x-3">
+              <input type="radio" v-model="selectedCategoryFilter" :value="category.id" class="text-blue-600">
+              <span class="text-sm text-gray-700" :class="{ 'ml-4': category.parentId }">
+                {{ category.name }}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 排序方式 -->
+        <div class="mb-6">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">排序方式</h4>
+          <div class="space-y-2">
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="sortBy" value="default" class="text-blue-600">
+              <span class="text-sm text-gray-700">默认排序</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="sortBy" value="difficulty" class="text-blue-600">
+              <span class="text-sm text-gray-700">按难度</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="sortBy" value="latest" class="text-blue-600">
+              <span class="text-sm text-gray-700">最新题目</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 难度筛选 -->
+        <div class="mb-6">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">难度</h4>
+          <div class="space-y-2">
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="difficultyFilter" value="" class="text-blue-600">
+              <span class="text-sm text-gray-700">全部难度</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="difficultyFilter" value="easy" class="text-blue-600">
+              <span class="text-sm text-gray-700">简单</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="difficultyFilter" value="medium" class="text-blue-600">
+              <span class="text-sm text-gray-700">中等</span>
+            </label>
+            <label class="flex items-center space-x-3">
+              <input type="radio" v-model="difficultyFilter" value="hard" class="text-blue-600">
+              <span class="text-sm text-gray-700">困难</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="flex space-x-3">
+          <button @click="resetFilters" class="flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium">
+            重置
+          </button>
+          <button @click="applyFilters" class="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -171,7 +239,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowLeft, Search, ChevronRight, FileText, Gavel, Stethoscope,
-  HardHat, GraduationCap, BookOpen, Calculator
+  HardHat, GraduationCap, BookOpen, Calculator, Filter, X
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { QuestionService, type Category, type Question } from '@/services/question'
@@ -204,6 +272,7 @@ const selectedCategoryFilter = ref('')
 const isLoading = ref(false)
 const hasMore = ref(true)
 const page = ref(1)
+const showFilterModal = ref(false)
 
 // 分类数据
 const allCategories = ref<CategoryWithIcon[]>([])
@@ -295,6 +364,21 @@ const getDifficultyText = (difficulty: string) => {
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleDateString()
+}
+
+// 筛选弹窗相关方法
+const resetFilters = () => {
+  selectedCategoryFilter.value = ''
+  sortBy.value = 'default'
+  difficultyFilter.value = ''
+}
+
+const applyFilters = () => {
+  showFilterModal.value = false
+  page.value = 1
+  questions.value = []
+  hasMore.value = true
+  loadCategoryData(categoryId.value || undefined)
 }
 
 // 分类筛选处理

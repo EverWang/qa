@@ -60,7 +60,7 @@
               </div>
               <div class="flex-1">
                 <h4 class="font-medium text-gray-800">{{ category.name }}</h4>
-                <p class="text-sm text-gray-500">{{ category.questionCount }} 道题</p>
+                <p class="text-sm text-gray-500">{{ category.questionCount || category.question_count || 0 }} 道题</p>
               </div>
             </div>
           </div>
@@ -85,17 +85,17 @@
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center space-x-2">
-                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                  {{ question.category.name }}
-                </span>
-                <span class="px-2 py-1 text-xs rounded-full" :class="getDifficultyClass(question.difficulty)">
-                  {{ getDifficultyText(question.difficulty) }}
-                </span>
-              </div>
+                  <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    {{ getCategoryName(question.category.id) }}
+                  </span>
+                  <span class="px-2 py-1 text-xs rounded-full" :class="getDifficultyClass(question.difficulty)">
+                    {{ getDifficultyText(question.difficulty) }}
+                  </span>
+                </div>
               <ChevronRight class="w-5 h-5 text-gray-400" />
             </div>
-            <h4 class="font-medium text-gray-800 mb-2">{{ question.title }}</h4>
-            <p class="text-sm text-gray-600 line-clamp-2">{{ question.content }}</p>
+            <h4 class="font-medium text-gray-800 mb-2 line-clamp-2">{{ question.title }}</h4>
+              <p class="text-sm text-gray-600 line-clamp-3">{{ question.content }}</p>
           </div>
         </div>
       </div>
@@ -234,6 +234,12 @@ const getDifficultyText = (difficulty: string) => {
   }
 }
 
+// 根据分类ID获取分类名称
+const getCategoryName = (categoryId: number) => {
+  const category = categories.value.find(cat => cat.id === categoryId)
+  return category ? category.name : '未分类'
+}
+
 // 导航方法
 const goToHome = () => {
   router.push('/')
@@ -244,11 +250,7 @@ const goToSearch = () => {
 }
 
 const goToProfile = () => {
-  if (authStore.isLoggedIn) {
-    router.push('/user/center')
-  } else {
-    router.push('/auth/login')
-  }
+  router.push('/user/center')
 }
 
 const goToCategory = (categoryId?: number) => {
@@ -264,11 +266,7 @@ const goToQuestion = (questionId: number) => {
 }
 
 const goToMistakes = () => {
-  if (authStore.isLoggedIn && !authStore.isGuest) {
-    router.push('/user/mistakes')
-  } else {
-    router.push('/auth/login')
-  }
+  router.push('/user/mistakes')
 }
 
 /**
@@ -286,13 +284,27 @@ const refreshRecommended = async () => {
 }
 
 /**
- * 加载推荐题目 - 使用真实API
+ * 加载推荐题目 - 使用真实API，支持随机获取
  */
 const loadRecommendedQuestions = async () => {
   try {
     console.log('开始加载推荐题目...')
+    
+    // 先获取题目总数
+    const totalResponse = await QuestionService.getQuestions({ page: 1, pageSize: 1 })
+    const totalQuestions = totalResponse.data?.total || 0
+    
+    if (totalQuestions === 0) {
+      recommendedQuestions.value = []
+      return
+    }
+    
+    // 随机选择页码，确保能获取到不同的题目
+    const maxPage = Math.ceil(totalQuestions / 3)
+    const randomPage = Math.floor(Math.random() * maxPage) + 1
+    
     const response = await QuestionService.getQuestions({
-      page: 1,
+      page: randomPage,
       pageSize: 3
     })
     
@@ -305,8 +317,8 @@ const loadRecommendedQuestions = async () => {
         content: q.content,
         difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
         category: {
-          id: q.categoryId,
-          name: q.categoryName || '未分类'
+          id: q.category_id || q.categoryId,
+          name: q.category?.name || q.categoryName || '未分类'
         }
       }))
       console.log('推荐题目加载成功，数量:', recommendedQuestions.value.length)
@@ -332,37 +344,37 @@ const loadCategories = async () => {
     
     if (response.success && response.data) {
       // 为分类添加图标和颜色
-      const iconMap: { [key: string]: any } = {
-        '法考': Gavel,
-        '法律': Gavel,
-        '医考': Stethoscope,
-        '医学': Stethoscope,
-        '工程': HardHat,
-        '建筑': HardHat,
-        '其他': GraduationCap
+      const getIconAndColor = (categoryName: string) => {
+        const name = categoryName.toLowerCase()
+        
+        // 法律相关
+        if (name.includes('法') || name.includes('律') || name.includes('司法')) {
+          return { icon: Gavel, color: '#3B82F6' }
+        }
+        // 医学相关
+        if (name.includes('医') || name.includes('药') || name.includes('护理') || name.includes('健康')) {
+          return { icon: Stethoscope, color: '#EF4444' }
+        }
+        // 建筑工程相关
+        if (name.includes('建筑') || name.includes('工程') || name.includes('施工') || name.includes('道路') || name.includes('桥梁')) {
+          return { icon: HardHat, color: '#F59E0B' }
+        }
+        // 默认
+        return { icon: GraduationCap, color: '#8B5CF6' }
       }
       
-      const colorMap: { [key: string]: string } = {
-        '法考': '#3B82F6',
-        '法律': '#3B82F6',
-        '医考': '#EF4444',
-        '医学': '#EF4444', 
-        '工程': '#F59E0B',
-        '建筑': '#F59E0B',
-        '其他': '#8B5CF6'
-      }
+      // 只显示一级分类（没有父分类的分类）且状态为启用的分类
+      const topLevelCategories = response.data.filter(cat => 
+        (!cat.parent_id || cat.parent_id === 0) && cat.status === 1
+      )
       
-      // 只显示一级分类（没有父分类的分类）
-      const topLevelCategories = response.data.filter(cat => !cat.parentId || cat.parentId === 0)
-      
-      categories.value = topLevelCategories.map((cat, index) => {
-        // 直接使用分类名称作为key，如果没有匹配则使用'其他'
-        const key = iconMap[cat.name] ? cat.name : '其他'
-        console.log('处理分类:', cat.name, '使用key:', key)
+      categories.value = topLevelCategories.map((cat) => {
+        const { icon, color } = getIconAndColor(cat.name)
+        console.log('处理分类:', cat.name, '图标:', icon.name, '颜色:', color)
         return {
           ...cat,
-          color: colorMap[key] || colorMap['其他'],
-          icon: iconMap[key] || iconMap['其他']
+          color,
+          icon
         }
       })
       
@@ -379,22 +391,32 @@ const loadCategories = async () => {
 }
 
 /**
- * 加载概览统计数据 - 使用真实API
+ * 加载概览统计数据 - 使用真实的统计API
  */
 const loadOverviewStats = async () => {
   try {
+    console.log('开始加载概览统计数据...')
     const response = await StatisticsService.getOverviewStatistics()
     
+    console.log('概览统计API响应:', response)
+    
     if (response.success && response.data) {
-      totalQuestions.value = response.data.totalQuestions
-      totalUsers.value = response.data.totalUsers
-      // 计算通过率：正确答题数 / 总答题数 * 100
-      if (response.data.totalAnswers > 0) {
-        // 这里需要从答题记录中计算正确率，暂时使用一个估算值
-        passRate.value = 75 // 可以根据实际数据调整
+      const data = response.data
+      totalQuestions.value = data.totalQuestions || 0
+      totalUsers.value = data.totalUsers || 0
+      // 计算通过率：如果有答题数据，计算通过率，否则使用默认值
+      if (data.totalAnswers && data.totalAnswers > 0) {
+        passRate.value = Math.round((data.correctAnswers || 0) / data.totalAnswers * 100)
       } else {
-        passRate.value = 0
+        passRate.value = 75 // 默认通过率
       }
+      console.log('概览统计加载成功:', { totalQuestions: totalQuestions.value, totalUsers: totalUsers.value, passRate: passRate.value })
+    } else {
+      console.log('概览统计API响应失败:', response)
+      // 使用默认值
+      totalQuestions.value = 0
+      totalUsers.value = 0
+      passRate.value = 0
     }
   } catch (error) {
     console.error('加载概览统计失败:', error)

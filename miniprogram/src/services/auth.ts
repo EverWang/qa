@@ -164,7 +164,7 @@ export class AuthService {
 
   // 获取用户统计信息
   static async getUserStats(): Promise<ApiResponse<UserStats>> {
-    return apiClient.get<UserStats>('/auth/stats')
+    return apiClient.get<UserStats>('/answers/statistics')
   }
 
   // 上传头像

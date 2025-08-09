@@ -88,12 +88,19 @@ const handleGuestLogin = async () => {
     // 调用store的游客登录方法
     await authStore.loginAsGuest()
     
-    // 显示成功提示
-    alert('游客登录成功！')
+    console.log('游客登录成功，准备跳转...')
     
     // 获取重定向地址，如果没有则跳转到首页
     const redirect = route.query.redirect as string
-    router.push(redirect || '/')
+    const targetPath = redirect || '/'
+    
+    console.log('跳转目标:', targetPath)
+    
+    // 延迟一下再跳转，确保登录状态已更新
+    setTimeout(() => {
+      router.push(targetPath)
+    }, 100)
+    
   } catch (error) {
     console.error('游客登录失败:', error)
     alert(error instanceof Error ? error.message : '游客登录失败，请重试')

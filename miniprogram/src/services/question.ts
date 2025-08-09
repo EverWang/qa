@@ -190,9 +190,21 @@ export class QuestionService {
       
       // 转换后端数据格式到前端期望格式
       if (response.success && response.data) {
-        // 确保response.data是数组
-        const dataArray = Array.isArray(response.data) ? response.data : []
+        console.log('response.data类型:', typeof response.data)
+        console.log('response.data内容:', response.data)
+        console.log('response.data是否为数组:', Array.isArray(response.data))
+        
+        // 如果response.data是对象且包含data字段，则使用data字段
+        let actualData = response.data
+        if (typeof response.data === 'object' && !Array.isArray(response.data) && response.data.data) {
+          actualData = response.data.data
+        }
+        
+        // 确保actualData是数组
+        const dataArray = Array.isArray(actualData) ? actualData : []
         console.log('QuestionService.getCategories 数据数组:', dataArray)
+        console.log('数据数组长度:', dataArray.length)
+        console.log('第一个数据项:', dataArray[0])
         
         const transformedData = dataArray.map((item: any) => {
           console.log('转换分类数据:', item)
@@ -201,7 +213,9 @@ export class QuestionService {
             name: item.name,
             description: item.description || '',
             parentId: item.parent_id,
+            parent_id: item.parent_id, // 保留原始字段名
             level: item.level,
+            status: item.status, // 添加status字段
             questionCount: item.question_count || 0,
             createdAt: item.created_at,
             updatedAt: item.updated_at

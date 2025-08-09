@@ -44,7 +44,7 @@ export class StatisticsService {
   }
 
   /**
-   * 获取用户个人统计数据（需要认证）
+   * 获取用户统计数据（需要认证）
    */
   static async getUserStatistics(): Promise<ApiResponse<UserStatistics>> {
     try {
