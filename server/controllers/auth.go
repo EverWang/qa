@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"qaminiprogram/config"
@@ -20,6 +21,13 @@ import (
 // WechatLoginRequest 微信登录请求
 type WechatLoginRequest struct {
 	Code string `json:"code" binding:"required"`
+}
+
+// PasswordLoginRequest 密码登录请求
+type PasswordLoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	Type     string `json:"type" binding:"required"`
 }
 
 // WechatLoginResponse 微信登录响应
@@ -56,13 +64,71 @@ type GuestLoginResponse struct {
 	ExpireAt int64       `json:"expire_at"`
 }
 
-// WechatLogin 微信登录
-func WechatLogin(c *gin.Context) {
-	var req WechatLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		ErrorResponse(c, http.StatusBadRequest, "参数错误")
+// UnifiedLogin 统一登录接口
+func UnifiedLogin(c *gin.Context) {
+	// 先尝试解析为密码登录请求
+	var passwordReq PasswordLoginRequest
+	if err := c.ShouldBindJSON(&passwordReq); err == nil && passwordReq.Type == "password" {
+		// 处理密码登录
+		PasswordLogin(c, passwordReq)
 		return
 	}
+
+	// 尝试解析为微信登录请求
+	var wechatReq WechatLoginRequest
+	if err := c.ShouldBindJSON(&wechatReq); err == nil {
+		// 处理微信登录
+		WechatLogin(c, wechatReq)
+		return
+	}
+
+	ErrorResponse(c, http.StatusBadRequest, "参数错误")
+}
+
+// PasswordLogin 密码登录
+func PasswordLogin(c *gin.Context, req PasswordLoginRequest) {
+	db := config.GetDB()
+	var user models.User
+
+	// 查找用户
+	if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
+		return
+	}
+
+	// 验证密码
+	if user.Password == "" {
+		ErrorResponse(c, http.StatusUnauthorized, "用户未设置密码")
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
+		return
+	}
+
+	// 生成JWT令牌
+	var openIDStr string
+	if user.OpenID != nil {
+		openIDStr = *user.OpenID
+	}
+	token, err := middleware.GenerateJWT(user.ID, openIDStr, user.Role)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "生成令牌失败")
+		return
+	}
+
+	// 返回登录结果
+	SuccessResponse(c, WechatLoginResponse{
+		Token:    token,
+		User:     user,
+		ExpireAt: time.Now().Add(24 * time.Hour).Unix(),
+	})
+}
+
+// WechatLogin 微信登录
+func WechatLogin(c *gin.Context, req WechatLoginRequest) {
 
 	// 调用微信API获取openid
 	openID, err := getWechatOpenID(req.Code)

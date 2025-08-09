@@ -110,7 +110,22 @@ export class QuestionService {
   static async getQuestions(params?: QuestionSearchParams): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
     try {
       console.log('QuestionService.getQuestions 调用参数:', params)
-      const response = await apiClient.getPaginated<any>('/questions', params)
+      
+      // 转换前端参数名为后端期望的格式
+      const backendParams: any = {}
+      if (params) {
+        if (params.categoryId !== undefined) backendParams.category_id = params.categoryId
+        if (params.difficulty !== undefined) backendParams.difficulty = params.difficulty
+        if (params.keyword !== undefined) backendParams.keyword = params.keyword
+        if (params.type !== undefined) backendParams.type = params.type
+        if (params.page !== undefined) backendParams.page = params.page
+        if (params.pageSize !== undefined) backendParams.size = params.pageSize
+        if (params.sortBy !== undefined) backendParams.sort_by = params.sortBy
+        if (params.sortOrder !== undefined) backendParams.sort_order = params.sortOrder
+      }
+      console.log('QuestionService.getQuestions 转换后的参数:', backendParams)
+      
+      const response = await apiClient.getPaginated<any>('/questions', backendParams)
       console.log('QuestionService.getQuestions 原始响应:', response)
       
       // 转换后端数据格式到前端期望格式

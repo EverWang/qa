@@ -10,16 +10,16 @@ import (
 
 // OverviewStatistics 概览统计
 type OverviewStatistics struct {
-	TotalUsers      int64 `json:"total_users"`
-	TotalQuestions  int64 `json:"total_questions"`
-	TotalCategories int64 `json:"total_categories"`
-	TotalAnswers    int64 `json:"total_answers"`
-	TodayUsers      int64 `json:"today_users"`
-	TodayAnswers    int64 `json:"today_answers"`
-	WeekUsers       int64 `json:"week_users"`
-	WeekAnswers     int64 `json:"week_answers"`
-	MonthUsers      int64 `json:"month_users"`
-	MonthAnswers    int64 `json:"month_answers"`
+	TotalUsers      int64 `json:"totalUsers"`
+	TotalQuestions  int64 `json:"totalQuestions"`
+	TotalCategories int64 `json:"totalCategories"`
+	TotalAnswers    int64 `json:"totalAnswers"`
+	TodayUsers      int64 `json:"todayUsers"`
+	TodayAnswers    int64 `json:"todayAnswers"`
+	WeekUsers       int64 `json:"weekUsers"`
+	WeekAnswers     int64 `json:"weekAnswers"`
+	MonthUsers      int64 `json:"monthUsers"`
+	MonthAnswers    int64 `json:"monthAnswers"`
 }
 
 // QuestionStatistics 题目统计

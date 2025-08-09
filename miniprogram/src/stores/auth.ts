@@ -82,32 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 游客登录
-  const loginAsGuest = async () => {
-    try {
-      isLoading.value = true
-      const response = await authService.loginAsGuest()
-      
-      if (response.success) {
-        setUser(response.data.user)
-        setToken(response.data.token)
-        
-        // 游客不需要获取统计信息，但需要保存refresh token（如果有）
-        if (response.data.refreshToken) {
-          localStorage.setItem('refresh_token', response.data.refreshToken)
-        }
-        
-        return response.data
-      } else {
-        throw new Error(response.message)
-      }
-    } catch (error) {
-      console.error('游客登录失败:', error)
-      throw error
-    } finally {
-      isLoading.value = false
-    }
-  }
+
 
   // 获取当前用户信息
   const fetchCurrentUser = async () => {
@@ -197,21 +172,11 @@ export const useAuthStore = defineStore('auth', () => {
         await fetchCurrentUser()
         
         // 获取最新的用户统计
-        if (!isGuest.value) {
-          await fetchUserStats()
-        }
+        await fetchUserStats()
       } catch (error) {
         console.error('初始化认证状态失败:', error)
-        // 如果验证失败，清除无效的认证信息并执行游客登录
+        // 如果验证失败，清除无效的认证信息
         logout()
-        await loginAsGuest()
-      }
-    } else {
-      // 如果没有保存的认证信息，自动执行游客登录
-      try {
-        await loginAsGuest()
-      } catch (error) {
-        console.error('自动游客登录失败:', error)
       }
     }
   }
@@ -250,7 +215,6 @@ export const useAuthStore = defineStore('auth', () => {
     setUserStats,
     loginWithPassword,
     loginWithWechat,
-    loginAsGuest,
     fetchCurrentUser,
     fetchUserStats,
     updateProfile,

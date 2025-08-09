@@ -107,31 +107,23 @@ router.beforeEach((to, from, next) => {
     
     // 如果没有token或用户信息，跳转到登录页
     if (!token || !userInfo) {
-      next({ name: 'login', query: { redirect: to.fullPath } })
+      next('/auth/login')
       return
     }
     
     // 检查用户信息是否有效
     try {
       const user = JSON.parse(userInfo)
-      // 检查用户是否有效（正式用户有ID，游客用户有isGuest标识）
-      if (user && (user.id || user.isGuest)) {
-        // 正式用户和游客用户都可以访问需要认证的页面
-        next()
+      // 检查用户信息是否有效
+      if (!user || !user.id) {
+        next('/auth/login')
         return
       }
     } catch (error) {
-      console.error('解析用户信息失败:', error)
-      // 清除无效的用户信息
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_info')
-      next({ name: 'login', query: { redirect: to.fullPath } })
+      // 用户信息解析失败
+      next('/auth/login')
       return
     }
-    
-    // 如果用户信息无效，跳转到登录页
-    next({ name: 'login', query: { redirect: to.fullPath } })
-    return
   }
   
   next()

@@ -94,6 +94,32 @@ func initializeDefaultData() {
 		}
 	}
 
+	// 检查是否已存在测试用户
+	var userCount int64
+	DB.Model(&models.User{}).Where("username = ?", "testuser").Count(&userCount)
+	if userCount == 0 {
+		// 创建默认测试用户
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("Failed to hash password: %v", err)
+		} else {
+			testUser := models.User{
+				Username: "testuser",
+				Email:    "testuser@example.com",
+				Password: string(hashedPassword),
+				Nickname: "测试用户",
+				Role:     "user",
+				Status:   "active",
+			}
+
+			if err := DB.Create(&testUser).Error; err != nil {
+				log.Printf("Failed to create test user: %v", err)
+			} else {
+				log.Println("Default test user created successfully (username: testuser, password: 123456)")
+			}
+		}
+	}
+
 	// 检查是否已存在系统设置
 	var settingsCount int64
 	DB.Model(&models.SystemSetting{}).Count(&settingsCount)

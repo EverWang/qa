@@ -21,7 +21,7 @@ func SetupRoutes(r *gin.Engine) {
 		public := api.Group("/")
 		{
 			// 用户认证
-			public.POST("/auth/login", controllers.WechatLogin)
+			public.POST("/auth/login", controllers.UnifiedLogin)
 			public.POST("/auth/guest", controllers.GuestLogin)
 			public.POST("/auth/refresh", controllers.RefreshToken)
 			

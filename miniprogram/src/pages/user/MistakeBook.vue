@@ -77,21 +77,8 @@
         </div>
       </div>
 
-      <!-- 游客模式提示 -->
-      <div v-if="authStore.isGuest" class="bg-white rounded-lg shadow-sm p-8 text-center">
-        <BookmarkMinus class="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <h3 class="text-lg font-medium text-gray-800 mb-2">登录后使用错题本</h3>
-        <p class="text-gray-500 mb-4">错题本功能需要登录后才能使用，登录后可以收藏错题并进行复习</p>
-        <button 
-          @click="goToLogin"
-          class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200"
-        >
-          立即登录
-        </button>
-      </div>
-
       <!-- 错题列表 -->
-      <div v-else-if="filteredQuestions.length > 0" class="space-y-4">
+      <div v-if="filteredQuestions.length > 0" class="space-y-4">
         <div 
           v-for="mistake in filteredQuestions"
           :key="mistake.id"
@@ -156,7 +143,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="!authStore.isGuest" class="bg-white rounded-lg shadow-sm p-8 text-center">
+      <div v-else class="bg-white rounded-lg shadow-sm p-8 text-center">
         <BookmarkMinus class="w-16 h-16 mx-auto mb-4 text-gray-300" />
         <h3 class="text-lg font-medium text-gray-800 mb-2">
           {{ mistakeQuestions.length === 0 ? '暂无错题' : '没有符合条件的错题' }}
@@ -381,12 +368,6 @@ const resetFilters = () => {
 
 // 加载数据
 const loadMistakeQuestions = async () => {
-  // 游客模式下不加载数据
-  if (authStore.isGuest) {
-    mistakeQuestions.value = []
-    return
-  }
-  
   try {
     const response = await questionService.getMistakeBook({
       page: 1,
@@ -406,14 +387,11 @@ const loadMistakeQuestions = async () => {
     }
   } catch (error) {
     console.error('加载错题本失败:', error)
-    // 游客模式下不显示错误提示，也不跳转到登录页
-    if (!authStore.isGuest) {
-      if (error.message.includes('登录已过期')) {
-        alert('登录已过期，请重新登录')
-        router.push('/auth/login')
-      } else {
-        alert('加载错题本失败，请重试')
-      }
+    if (error.message.includes('登录已过期')) {
+      alert('登录已过期，请重新登录')
+      router.push('/auth/login')
+    } else {
+      alert('加载错题本失败，请重试')
     }
   }
 }

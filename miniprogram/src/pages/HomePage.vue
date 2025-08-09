@@ -14,10 +14,26 @@
             <button @click="goToSearch" class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg">
               <Search class="w-5 h-5" />
             </button>
-            <button @click="goToProfile" class="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
+            <button 
+              v-if="!authStore.isLoggedIn" 
+              @click="goToLogin" 
+              class="flex items-center space-x-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors"
+            >
               <User class="w-5 h-5" />
-              <span class="text-sm">{{ authStore.user?.nickname || '登录' }}</span>
+              <span class="text-sm font-medium">登录</span>
             </button>
+            <div v-else class="flex items-center space-x-2">
+              <button @click="goToProfile" class="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
+                <User class="w-5 h-5" />
+                <span class="text-sm">{{ authStore.user?.nickname || authStore.user?.username || '用户' }}</span>
+              </button>
+              <button 
+                @click="handleLogout" 
+                class="flex items-center space-x-1 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-lg transition-colors text-sm"
+              >
+                <span>退出</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -100,8 +116,8 @@
         </div>
       </div>
 
-      <!-- 学习统计 -->
-      <div v-if="authStore.isLoggedIn && !authStore.isGuest" class="bg-white rounded-lg p-6 shadow-sm">
+     <!-- 学习统计 -->
+        <div v-if="authStore.isLoggedIn" class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">学习统计</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="text-center">
@@ -249,7 +265,15 @@ const goToSearch = () => {
   router.push('/search')
 }
 
+const goToLogin = () => {
+  router.push('/auth/login')
+}
+
 const goToProfile = () => {
+  if (!authStore.isLoggedIn) {
+    router.push('/auth/login')
+    return
+  }
   router.push('/user/center')
 }
 
@@ -266,7 +290,22 @@ const goToQuestion = (questionId: number) => {
 }
 
 const goToMistakes = () => {
+  if (!authStore.isLoggedIn) {
+    router.push('/auth/login')
+    return
+  }
   router.push('/user/mistakes')
+}
+
+// 退出登录
+const handleLogout = async () => {
+  try {
+    await authStore.logout()
+    // 退出后刷新页面数据
+    await loadUserStats()
+  } catch (error) {
+    console.error('退出登录失败:', error)
+  }
 }
 
 /**
@@ -448,11 +487,17 @@ const loadUserStats = async () => {
     
     if (response.success && response.data) {
       const data = response.data
+      
+      // 安全地处理数值，避免NaN
+      const totalAnswered = Number(data.totalAnswered) || 0
+      const correctAnswered = Number(data.correctAnswered) || 0
+      const accuracyRate = Number(data.accuracyRate) || 0
+      
       userStats.value = {
-        totalAnswered: data.totalAnswered || 0,
-        correctRate: Math.round(data.accuracyRate || 0),
-        mistakeCount: (data.totalAnswered || 0) - (data.correctAnswered || 0),
-        studyDays: Math.ceil((Date.now() - new Date(authStore.user?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24))
+        totalAnswered,
+        correctRate: Math.round(accuracyRate),
+        mistakeCount: Math.max(0, totalAnswered - correctAnswered),
+        studyDays: Math.max(1, Math.ceil((Date.now() - new Date(authStore.user?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24)))
       }
     }
   } catch (error) {

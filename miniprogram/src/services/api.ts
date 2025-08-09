@@ -89,6 +89,16 @@ class ApiClient {
 
     const data = await response.json()
     
+    // 处理后端返回的标准格式 {code, message, data}
+    if (data && typeof data === 'object' && 'code' in data && 'message' in data && 'data' in data) {
+      return {
+        code: data.code,
+        message: data.message,
+        data: data.data,
+        success: data.code === 200
+      }
+    }
+    
     // 如果后端返回的数据已经是ApiResponse格式，直接返回
     if (data && typeof data === 'object' && 'success' in data && 'code' in data && 'message' in data) {
       return data
@@ -140,8 +150,42 @@ class ApiClient {
 
   // 分页GET请求 - 自动转换数据格式
   async getPaginated<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<FrontendPaginatedResponse<T>>> {
-    const backendResponse = await this.get<PaginatedResponse<T>>(endpoint, params)
-    return this.transformPaginatedResponse(backendResponse)
+    const backendResponse = await this.get<any>(endpoint, params)
+    
+    // 如果后端返回的是数组格式，转换为分页格式
+    if (backendResponse.success && Array.isArray(backendResponse.data)) {
+      const page = params?.page || 1
+      const pageSize = params?.size || params?.pageSize || 10
+      const items = backendResponse.data
+      
+      return {
+        ...backendResponse,
+        data: {
+          items,
+          total: items.length,
+          page,
+          pageSize,
+          totalPages: Math.ceil(items.length / pageSize)
+        }
+      }
+    }
+    
+    // 如果后端返回的是分页格式，进行转换
+    if (backendResponse.success && backendResponse.data && typeof backendResponse.data === 'object' && 'data' in backendResponse.data) {
+      return this.transformPaginatedResponse(backendResponse as ApiResponse<PaginatedResponse<T>>)
+    }
+    
+    // 默认情况，包装为分页格式
+    return {
+      ...backendResponse,
+      data: {
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10,
+        totalPages: 0
+      }
+    }
   }
 
   // POST 请求

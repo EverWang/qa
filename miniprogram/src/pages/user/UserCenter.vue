@@ -26,8 +26,8 @@
             />
           </div>
           <div class="flex-1">
-            <h2 class="text-xl font-semibold text-gray-800">{{ authStore.user?.nickname || '未登录' }}</h2>
-            <p class="text-gray-500 text-sm">{{ authStore.isGuest ? '游客模式' : '正式用户' }}</p>
+            <h2 class="text-xl font-semibold text-gray-800">{{ authStore.user?.nickname || authStore.user?.username || '用户' }}</h2>
+            <p class="text-gray-500 text-sm">正式用户</p>
             <div class="flex items-center space-x-4 mt-2">
               <div class="flex items-center text-sm text-gray-600">
                 <Calendar class="w-4 h-4 mr-1" />
@@ -39,20 +39,13 @@
               </div>
             </div>
           </div>
-          <button 
-            v-if="authStore.isGuest"
-            @click="goToLogin"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors duration-200"
-          >
-            立即登录
-          </button>
         </div>
       </div>
 
       <!-- 学习统计 -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">学习统计</h3>
-        <div v-if="!authStore.isGuest" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="text-center p-4 bg-blue-50 rounded-lg">
             <div class="text-2xl font-bold text-blue-600">{{ stats.totalAnswered }}</div>
             <div class="text-sm text-gray-600 mt-1">已答题目</div>
@@ -69,18 +62,6 @@
             <div class="text-2xl font-bold text-purple-600">{{ stats.studyDays }}</div>
             <div class="text-sm text-gray-600 mt-1">学习天数</div>
           </div>
-        </div>
-        <div v-else class="text-center py-8">
-          <div class="text-gray-400 mb-4">
-            <Trophy class="w-12 h-12 mx-auto mb-3" />
-          </div>
-          <p class="text-gray-500 mb-4">登录后查看详细学习统计</p>
-          <button 
-            @click="goToLogin"
-            class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200"
-          >
-            立即登录
-          </button>
         </div>
       </div>
 
@@ -149,7 +130,7 @@
           <h3 class="text-lg font-semibold text-gray-800">最近学习</h3>
         </div>
         <div class="p-4">
-          <div v-if="!authStore.isGuest && recentQuestions.length > 0" class="space-y-3">
+          <div v-if="recentQuestions.length > 0" class="space-y-3">
             <div 
               v-for="question in recentQuestions"
               :key="question.id"
@@ -172,16 +153,6 @@
               </div>
             </div>
           </div>
-          <div v-else-if="authStore.isGuest" class="text-center py-8">
-            <BookOpen class="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p class="text-gray-500 mb-4">登录后查看答题记录</p>
-            <button 
-              @click="goToLogin"
-              class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200"
-            >
-              立即登录
-            </button>
-          </div>
           <div v-else class="text-center py-8 text-gray-500">
             <BookOpen class="w-12 h-12 mx-auto mb-3 text-gray-300" />
             <p>还没有答题记录</p>
@@ -196,7 +167,7 @@
       </div>
 
       <!-- 退出登录 -->
-      <div v-if="!authStore.isGuest" class="bg-white rounded-lg shadow-sm">
+      <div class="bg-white rounded-lg shadow-sm">
         <button 
           @click="handleLogout"
           class="w-full p-4 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
@@ -313,26 +284,24 @@ const handleLogout = () => {
 
 // 加载用户统计
 const loadUserStats = async () => {
-  if (authStore.isGuest) {
-    stats.value = {
-      totalAnswered: 0,
-      correctRate: 0,
-      mistakeCount: 0,
-      studyDays: 0
-    }
-    return
-  }
-  
   try {
     // 使用真实API获取用户统计
     const response = await StatisticsService.getUserStatistics()
     
     if (response.success && response.data) {
+      const data = response.data
+      
+      // 安全地处理数值，避免NaN
+      const totalAnswered = Number(data.totalAnswered) || 0
+      const correctAnswered = Number(data.correctAnswered) || 0
+      const accuracyRate = Number(data.accuracyRate) || 0
+      const totalTimeSpent = Number(data.totalTimeSpent) || 0
+      
       stats.value = {
-        totalAnswered: response.data.totalAnswered,
-        correctRate: Math.round(response.data.accuracyRate),
-        mistakeCount: response.data.totalAnswered - response.data.correctAnswered,
-        studyDays: Math.ceil(response.data.totalTimeSpent / (60 * 24)) // 假设每天学习24分钟
+        totalAnswered,
+        correctRate: Math.round(accuracyRate),
+        mistakeCount: Math.max(0, totalAnswered - correctAnswered),
+        studyDays: Math.max(1, Math.ceil(totalTimeSpent / (60 * 24))) // 至少显示1天
       }
     } else {
       // 如果API调用失败，使用默认值
@@ -357,11 +326,6 @@ const loadUserStats = async () => {
 
 // 加载最近答题记录
 const loadRecentQuestions = async () => {
-  if (authStore.isGuest) {
-    recentQuestions.value = []
-    return
-  }
-  
   try {
     // 使用真实API获取最近答题记录
     const response = await questionService.getAnswerRecords({

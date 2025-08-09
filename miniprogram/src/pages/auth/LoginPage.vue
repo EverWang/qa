@@ -11,28 +11,44 @@
       </div>
 
       <!-- 登录表单 -->
-      <div class="space-y-6">
-        <!-- 微信登录按钮 -->
-        <button
-          @click="handleWechatLogin"
-          :disabled="isLoading"
-          class="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-        >
-          <Smartphone v-if="!isLoading" class="w-5 h-5" />
-          <Loader2 v-else class="w-5 h-5 animate-spin" />
-          <span>{{ isLoading ? '登录中...' : '微信授权登录' }}</span>
-        </button>
+      <form @submit.prevent="handleLogin" class="space-y-6">
+        <!-- 用户名输入框 -->
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            required
+            placeholder="请输入用户名"
+            class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
 
-        <!-- 游客登录 -->
+        <!-- 密码输入框 -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            required
+            placeholder="请输入密码"
+            class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        <!-- 登录按钮 -->
         <button
-          @click="handleGuestLogin"
-          :disabled="isLoading"
-          class="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+          type="submit"
+          :disabled="isLoading || !username || !password"
+          class="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
         >
-          <User class="w-5 h-5" />
-          <span>游客体验</span>
+          <Loader2 v-if="isLoading" class="w-5 h-5 animate-spin" />
+          <User v-else class="w-5 h-5" />
+          <span>{{ isLoading ? '登录中...' : '登录' }}</span>
         </button>
-      </div>
+      </form>
 
       <!-- 服务条款 -->
       <div class="mt-8 text-center">
@@ -48,62 +64,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { BookOpen, Smartphone, User, Loader2 } from 'lucide-vue-next'
+import { BookOpen, User, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const isLoading = ref(false)
+const username = ref('')
+const password = ref('')
 
-// 微信授权登录
-const handleWechatLogin = async () => {
+// 用户名密码登录
+const handleLogin = async () => {
   try {
     isLoading.value = true
     
-    // 模拟获取微信授权码
-    const mockCode = 'mock_wechat_code_' + Date.now()
-    
-    // 调用store的微信登录方法
-    await authStore.loginWithWechat(mockCode)
+    // 调用store的密码登录方法
+    await authStore.loginWithPassword(username.value, password.value)
     
     // 获取重定向地址，如果没有则跳转到首页
     const redirect = route.query.redirect as string
     router.push(redirect || '/')
   } catch (error) {
-    console.error('微信登录失败:', error)
-    alert(error instanceof Error ? error.message : '微信登录失败，请重试')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 游客登录
-const handleGuestLogin = async () => {
-  try {
-    isLoading.value = true
-    
-    // 调用store的游客登录方法
-    await authStore.loginAsGuest()
-    
-    console.log('游客登录成功，准备跳转...')
-    
-    // 获取重定向地址，如果没有则跳转到首页
-    const redirect = route.query.redirect as string
-    const targetPath = redirect || '/'
-    
-    console.log('跳转目标:', targetPath)
-    
-    // 延迟一下再跳转，确保登录状态已更新
-    setTimeout(() => {
-      router.push(targetPath)
-    }, 100)
-    
-  } catch (error) {
-    console.error('游客登录失败:', error)
-    alert(error instanceof Error ? error.message : '游客登录失败，请重试')
+    console.error('登录失败:', error)
+    alert(error instanceof Error ? error.message : '登录失败，请重试')
   } finally {
     isLoading.value = false
   }
