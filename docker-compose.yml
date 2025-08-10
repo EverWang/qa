@@ -77,7 +77,7 @@ services:
 
   # Nginx反向代理
   nginx:
-    image: nginx:alpine
+    image: docker.m.daocloud.io/nginx:alpine
     container_name: qaminiprogram_nginx
     restart: always
     ports:

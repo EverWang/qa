@@ -20,7 +20,7 @@ ENV VITE_API_BASE_URL=http://localhost:8080/api/v1
 RUN npm run build
 
 # 使用nginx作为运行环境
-FROM nginx:alpine
+FROM docker.m.daocloud.io/nginx:alpine
 
 # 复制构建产物到nginx目录
 COPY --from=builder /app/dist /usr/share/nginx/html
