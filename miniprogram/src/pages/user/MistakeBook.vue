@@ -316,12 +316,21 @@ const reviewQuestion = (mistake: MistakeQuestion) => {
   router.push(`/question/${mistake.question.id}`)
 }
 
-const toggleMastered = (mistake: MistakeQuestion) => {
-  if (mistake.status === 'mastered') {
-    mistake.status = 'reviewed'
-  } else {
-    mistake.status = 'mastered'
-    mistake.lastReviewAt = new Date().toISOString()
+const toggleMastered = async (mistake: MistakeQuestion) => {
+  try {
+    if (mistake.status === 'mastered') {
+      // 重置掌握状态
+      await questionService.resetMistakeStatus(mistake.question.id)
+      mistake.status = 'reviewed'
+    } else {
+      // 标记为已掌握
+      await questionService.markMistakeAsMastered(mistake.question.id)
+      mistake.status = 'mastered'
+      mistake.lastReviewAt = new Date().toISOString()
+    }
+  } catch (error) {
+    console.error('更新掌握状态失败:', error)
+    alert('操作失败，请重试')
   }
 }
 
@@ -331,8 +340,17 @@ const removeMistake = async (mistakeId: number) => {
   }
   
   try {
+    // 找到对应的错题记录
+    const mistake = mistakeQuestions.value.find(m => m.id === mistakeId)
+    if (!mistake) {
+      alert('错题记录不存在')
+      return
+    }
+    
+    // 调用API删除错题记录，传递错题本记录ID而不是题目ID
     await questionService.removeFromMistakeBook(mistakeId)
     
+    // 从本地列表中移除
     const index = mistakeQuestions.value.findIndex(m => m.id === mistakeId)
     if (index > -1) {
       mistakeQuestions.value.splice(index, 1)
@@ -376,18 +394,25 @@ const loadMistakeQuestions = async () => {
     
     if (response.success) {
       // 转换数据格式，添加状态字段
-      mistakeQuestions.value = response.data.items.map(mistake => ({
-        ...mistake,
-        status: 'not_reviewed' as 'not_reviewed' | 'reviewed' | 'mastered',
-        reviewCount: 0,
-        isMastered: false,
-        createdAt: mistake.addedAt || new Date().toISOString(),
-        lastReviewAt: undefined
-      })) as MistakeQuestion[]
+      mistakeQuestions.value = response.data.items.map(mistake => {
+        // 根据isMastered字段确定状态
+        let status: 'not_reviewed' | 'reviewed' | 'mastered' = 'not_reviewed'
+        if (mistake.isMastered) {
+          status = 'mastered'
+        } else if (mistake.lastReviewAt) {
+          status = 'reviewed'
+        }
+        
+        return {
+          ...mistake,
+          status,
+          createdAt: mistake.addedAt || new Date().toISOString()
+        } as MistakeQuestion
+      })
     }
   } catch (error) {
     console.error('加载错题本失败:', error)
-    if (error.message.includes('登录已过期')) {
+    if (error.message && error.message.includes('登录已过期')) {
       alert('登录已过期，请重新登录')
       router.push('/auth/login')
     } else {

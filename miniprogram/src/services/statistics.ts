@@ -34,7 +34,7 @@ export class StatisticsService {
   static async getOverviewStatistics(): Promise<ApiResponse<OverviewStatistics>> {
     try {
       console.log('StatisticsService.getOverviewStatistics 开始调用')
-      const response = await apiClient.get<OverviewStatistics>('/statistics/overview')
+      const response = await apiClient.get<OverviewStatistics>('/api/v1/statistics/overview')
       console.log('StatisticsService.getOverviewStatistics 响应:', response)
       return response
     } catch (error) {
@@ -49,7 +49,7 @@ export class StatisticsService {
   static async getUserStatistics(): Promise<ApiResponse<UserStatistics>> {
     try {
       console.log('StatisticsService.getUserStatistics 开始调用')
-      const response = await apiClient.get<UserStatistics>('/answers/statistics')
+      const response = await apiClient.get<UserStatistics>('/api/v1/answers/statistics')
       console.log('StatisticsService.getUserStatistics 响应:', response)
       return response
     } catch (error) {

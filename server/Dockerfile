@@ -20,7 +20,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # 使用alpine作为运行环境
-FROM alpine:latest
+FROM docker.m.daocloud.io/alpine:latest
 
 # 安装ca-certificates用于HTTPS请求
 RUN apk --no-cache add ca-certificates

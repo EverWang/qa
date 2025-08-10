@@ -17,14 +17,31 @@ func CORS() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 		allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
 		
-		// 如果配置为*或包含请求的origin，则允许
-		if allowedOrigins == "*" {
+		// 如果配置为*，则允许所有来源
+		if strings.Contains(allowedOrigins, "*") {
 			c.Header("Access-Control-Allow-Origin", "*")
-		} else if origin != "" && strings.Contains(allowedOrigins, origin) {
-			c.Header("Access-Control-Allow-Origin", origin)
 		} else if origin != "" {
-			// 开发环境下允许localhost
-			if strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1") {
+			// 检查是否在允许的来源列表中
+			originAllowed := false
+			originList := strings.Split(allowedOrigins, ",")
+			for _, allowedOrigin := range originList {
+				allowedOrigin = strings.TrimSpace(allowedOrigin)
+				if allowedOrigin == origin || allowedOrigin == "*" {
+					originAllowed = true
+					break
+				}
+			}
+			
+			// 开发环境下允许localhost和cpolar域名
+			if !originAllowed {
+				if strings.Contains(origin, "localhost") || 
+				   strings.Contains(origin, "127.0.0.1") || 
+				   strings.Contains(origin, "cpolar.io") {
+					originAllowed = true
+				}
+			}
+			
+			if originAllowed {
 				c.Header("Access-Control-Allow-Origin", origin)
 			}
 		}

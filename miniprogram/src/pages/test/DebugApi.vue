@@ -92,7 +92,8 @@ const testStatistics = async () => {
 const testDirectApi = async () => {
   try {
     console.log('开始直接测试API...')
-    const result = await fetch('http://localhost:8080/api/v1/categories')
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+    const result = await fetch(`${API_BASE_URL}/api/v1/categories`)
     const data = await result.json()
     console.log('直接API结果:', data)
     directResult.value = data

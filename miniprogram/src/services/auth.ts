@@ -56,7 +56,7 @@ export interface UserStats {
 export class AuthService {
   // 密码登录
   static async loginWithPassword(username: string, password: string): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/login', {
+    return apiClient.post<LoginResponse>('/api/v1/auth/login', {
       username,
       password,
       type: 'password'
@@ -65,7 +65,7 @@ export class AuthService {
 
   // 微信登录
   static async loginWithWechat(code: string): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/login', {
+    return apiClient.post<LoginResponse>('/api/v1/auth/login', {
       code,
       type: 'wechat'
     })
@@ -75,32 +75,32 @@ export class AuthService {
 
   // 注册
   static async register(data: RegisterRequest): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/register', data)
+    return apiClient.post<LoginResponse>('/api/v1/auth/register', data)
   }
 
   // 退出登录
   static async logout(): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/logout')
+    return apiClient.post<void>('/api/v1/auth/logout')
   }
 
   // 刷新 token
   static async refreshToken(refreshToken: string): Promise<ApiResponse<{ token: string; expiresIn: number }>> {
-    return apiClient.post('/auth/refresh', { refreshToken })
+    return apiClient.post('/api/v1/auth/refresh', { refreshToken })
   }
 
   // 获取当前用户信息
   static async getCurrentUser(): Promise<ApiResponse<User>> {
-    return apiClient.get<User>('/auth/me')
+    return apiClient.get<User>('/api/v1/auth/me')
   }
 
   // 更新用户信息
   static async updateProfile(data: Partial<User>): Promise<ApiResponse<User>> {
-    return apiClient.put<User>('/auth/profile', data)
+    return apiClient.put<User>('/api/v1/auth/profile', data)
   }
 
   // 修改密码
   static async changePassword(oldPassword: string, newPassword: string): Promise<ApiResponse<void>> {
-    return apiClient.put<void>('/auth/password', {
+    return apiClient.put<void>('/api/v1/auth/password', {
       oldPassword,
       newPassword
     })
@@ -108,37 +108,37 @@ export class AuthService {
 
   // 绑定微信
   static async bindWechat(code: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/bind-wechat', { code })
+    return apiClient.post<void>('/api/v1/auth/bind-wechat', { code })
   }
 
   // 解绑微信
   static async unbindWechat(): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>('/auth/bind-wechat')
+    return apiClient.delete<void>('/api/v1/auth/bind-wechat')
   }
 
   // 获取用户统计信息
   static async getUserStats(): Promise<ApiResponse<UserStats>> {
-    return apiClient.get<UserStats>('/answers/statistics')
+    return apiClient.get<UserStats>('/api/v1/answers/statistics')
   }
 
   // 上传头像
   static async uploadAvatar(file: File): Promise<ApiResponse<{ avatar: string }>> {
-    return apiClient.upload<{ avatar: string }>('/auth/avatar', file)
+    return apiClient.upload<{ avatar: string }>('/api/v1/auth/avatar', file)
   }
 
   // 发送验证码
   static async sendVerificationCode(phone: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/send-code', { phone })
+    return apiClient.post<void>('/api/v1/auth/send-code', { phone })
   }
 
   // 验证手机号
   static async verifyPhone(phone: string, code: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/verify-phone', { phone, code })
+    return apiClient.post<void>('/api/v1/auth/verify-phone', { phone, code })
   }
 
   // 重置密码
   static async resetPassword(phone: string, code: string, newPassword: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>('/auth/reset-password', {
+    return apiClient.post<void>('/api/v1/auth/reset-password', {
       phone,
       code,
       newPassword
@@ -147,17 +147,23 @@ export class AuthService {
 
   // 检查用户名是否可用
   static async checkUsername(username: string): Promise<ApiResponse<{ available: boolean }>> {
-    return apiClient.get<{ available: boolean }>('/auth/check-username', { username })
+    return apiClient.get<{ available: boolean }>('/api/v1/auth/check-username', {
+      params: { username }
+    })
   }
 
   // 检查邮箱是否可用
   static async checkEmail(email: string): Promise<ApiResponse<{ available: boolean }>> {
-    return apiClient.get<{ available: boolean }>('/auth/check-email', { email })
+    return apiClient.get<{ available: boolean }>('/api/v1/auth/check-email', {
+      params: { email }
+    })
   }
 
   // 删除账户
   static async deleteAccount(password: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>('/auth/account')
+    return apiClient.delete<void>('/api/v1/auth/account', {
+      data: { password }
+    })
   }
 }
 

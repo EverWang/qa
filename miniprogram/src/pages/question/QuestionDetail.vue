@@ -121,10 +121,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Share2, CheckCircle, XCircle, Lightbulb, BookmarkPlus } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { QuestionService } from '@/services/question'
 
 interface Question {
   id: number
@@ -232,13 +233,18 @@ const submitAnswer = async () => {
   
   // 记录答题结果
   try {
-    // 这里调用API记录答题结果
-    console.log('记录答题结果:', {
-      questionId: questionId.value,
-      userAnswer: selectedOption.value,
-      isCorrect: isCorrect.value,
-      timeSpent: 0 // 实际项目中需要计算答题时间
+    // 调用真实API记录答题结果
+    const response = await QuestionService.submitAnswer({
+      question_id: parseInt(questionId.value),
+      user_answer: selectedOption.value,
+      time_spent: 0 // 实际项目中需要计算答题时间
     })
+    
+    if (response.success) {
+      console.log('记录答题结果成功:', response.data)
+    } else {
+      console.error('记录答题结果失败:', response.message)
+    }
   } catch (error) {
     console.error('记录答题结果失败:', error)
   }
@@ -251,9 +257,28 @@ const closeResultModal = () => {
 }
 
 // 下一题
-const nextQuestion = () => {
-  const nextId = parseInt(questionId.value) + 1
-  router.push(`/question/${nextId}`)
+const nextQuestion = async () => {
+  try {
+    const nextId = parseInt(questionId.value) + 1
+    
+    // 检查下一题是否存在
+    const response = await QuestionService.getQuestion(nextId)
+    if (response.success) {
+      // 重置状态
+      selectedOption.value = null
+      showAnswer.value = false
+      showResultModal.value = false
+      isCorrect.value = false
+      
+      // 跳转到下一题
+      router.push(`/question/${nextId}`)
+    } else {
+      alert('没有更多题目了')
+    }
+  } catch (error) {
+    console.error('加载下一题失败:', error)
+    alert('加载下一题失败，请重试')
+  }
 }
 
 // 加入错题本
@@ -266,11 +291,15 @@ const addToMistakes = async () => {
   try {
     isAddingToMistakes.value = true
     
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 调用真实API
+    const response = await QuestionService.addToMistakeBook(parseInt(questionId.value))
     
-    console.log('添加到错题本:', questionId.value)
-    alert('已添加到错题本')
+    if (response.success) {
+      console.log('添加到错题本成功:', questionId.value)
+      alert('已添加到错题本')
+    } else {
+      throw new Error(response.message || '添加失败')
+    }
   } catch (error) {
     console.error('添加到错题本失败:', error)
     alert('添加失败，请重试')
@@ -302,33 +331,37 @@ const goBack = () => {
 // 加载题目数据
 const loadQuestion = async () => {
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // 重置状态
+    selectedOption.value = null
+    showAnswer.value = false
+    showResultModal.value = false
+    isCorrect.value = false
     
-    // 模拟题目数据
-    question.value = {
-      id: parseInt(questionId.value),
-      title: `第${questionId.value}题`,
-      content: '以下关于道路工程施工安全的说法，正确的是？',
-      options: [
-        '施工现场可以不设置安全警示标志',
-        '施工人员必须佩戴安全帽和反光背心',
-        '夜间施工不需要特殊照明设备',
-        '施工区域可以随意堆放材料'
-      ],
-      correctAnswer: 1,
-      explanation: '根据《公路工程施工安全技术规范》，施工人员在施工现场必须佩戴安全帽和反光背心，这是保障施工安全的基本要求。其他选项都是错误的做法，会带来安全隐患。',
-      difficulty: 'medium',
-      category: {
-        id: 1,
-        name: '道路工程'
-      }
+    // 调用真实API获取题目数据
+    const response = await QuestionService.getQuestion(parseInt(questionId.value))
+    
+    if (response.success) {
+      question.value = response.data
+    } else {
+      throw new Error(response.message || '获取题目失败')
     }
   } catch (error) {
     console.error('加载题目失败:', error)
     alert('加载题目失败，请重试')
+    // 如果加载失败，返回上一页
+    router.back()
   }
 }
+
+// 监听路由变化
+const { questionId: routeQuestionId } = route.params
+
+// 当路由参数变化时重新加载题目
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    loadQuestion()
+  }
+}, { immediate: false })
 
 onMounted(() => {
   loadQuestion()

@@ -11,6 +11,7 @@ import (
 	"qaminiprogram/config"
 	"qaminiprogram/middleware"
 	"qaminiprogram/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -65,22 +66,43 @@ type GuestLoginResponse struct {
 
 // UnifiedLogin 统一登录接口
 func UnifiedLogin(c *gin.Context) {
+	// 读取请求体
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		fmt.Printf("读取请求体失败: %v\n", err)
+		ErrorResponse(c, http.StatusBadRequest, "读取请求体失败")
+		return
+	}
+
+	fmt.Printf("收到请求体: %s\n", string(body))
+
 	// 先尝试解析为密码登录请求
 	var passwordReq PasswordLoginRequest
-	if err := c.ShouldBindJSON(&passwordReq); err == nil && passwordReq.Type == "password" {
+	if err := json.Unmarshal(body, &passwordReq); err == nil && passwordReq.Type == "password" {
+		fmt.Printf("解析为密码登录请求成功: %+v\n", passwordReq)
+		// 重新设置请求体以供PasswordLogin使用
+		c.Request.Body = io.NopCloser(strings.NewReader(string(body)))
 		// 处理密码登录
 		PasswordLogin(c)
 		return
+	} else {
+		fmt.Printf("解析密码登录请求失败: %v, Type: %s\n", err, passwordReq.Type)
 	}
 
 	// 尝试解析为微信登录请求
 	var wechatReq WechatLoginRequest
-	if err := c.ShouldBindJSON(&wechatReq); err == nil {
+	if err := json.Unmarshal(body, &wechatReq); err == nil && wechatReq.Code != "" {
+		fmt.Printf("解析为微信登录请求成功: %+v\n", wechatReq)
+		// 重新设置请求体以供WechatLogin使用
+		c.Request.Body = io.NopCloser(strings.NewReader(string(body)))
 		// 处理微信登录
 		WechatLogin(c)
 		return
+	} else {
+		fmt.Printf("解析微信登录请求失败: %v, Code: %s\n", err, wechatReq.Code)
 	}
 
+	fmt.Printf("所有解析都失败，返回参数错误\n")
 	ErrorResponse(c, http.StatusBadRequest, "参数错误")
 }
 

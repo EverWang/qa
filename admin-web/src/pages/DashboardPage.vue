@@ -181,10 +181,10 @@ const fetchStats = async () => {
     // 后端返回格式: {code: 200, message: 'success', data: {...}}
     const data = response.data.data
     Object.assign(stats, {
-      totalQuestions: data.total_questions,
-      totalCategories: data.total_categories,
-      totalUsers: data.total_users,
-      totalRecords: data.total_answers
+      totalQuestions: data.totalQuestions,
+      totalCategories: data.totalCategories,
+      totalUsers: data.totalUsers,
+      totalRecords: data.totalAnswers
     })
   } catch (error) {
     console.error('获取统计数据失败:', error)

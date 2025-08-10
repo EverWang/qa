@@ -99,9 +99,9 @@ export interface QuestionSearchParams {
 
 // 答题请求接口
 export interface SubmitAnswerRequest {
-  questionId: number
-  userAnswer: string | string[]
-  timeSpent: number
+  question_id: number
+  user_answer: number
+  time_spent: number
 }
 
 // 题目服务
@@ -125,7 +125,7 @@ export class QuestionService {
       }
       console.log('QuestionService.getQuestions 转换后的参数:', backendParams)
       
-      const response = await apiClient.getPaginated<any>('/questions', backendParams)
+      const response = await apiClient.getPaginated<any>('/api/v1/questions', backendParams)
       console.log('QuestionService.getQuestions 原始响应:', response)
       
       // 转换后端数据格式到前端期望格式
@@ -164,17 +164,55 @@ export class QuestionService {
 
   // 获取题目详情
   static async getQuestion(id: number): Promise<ApiResponse<Question>> {
-    return apiClient.get<Question>(`/questions/${id}`)
+    try {
+      console.log('QuestionService.getQuestion 调用参数:', id)
+      const response = await apiClient.get<any>(`/api/v1/questions/${id}`)
+      console.log('QuestionService.getQuestion 原始响应:', response)
+      
+      // 转换后端数据格式到前端期望格式
+      if (response.success && response.data) {
+        const item = response.data
+        console.log('转换题目详情数据:', item)
+        
+        const transformedData = {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          type: item.type,
+          difficulty: item.difficulty,
+          options: Array.isArray(item.options) ? item.options : [],
+          correctAnswer: item.correct_answer,
+          explanation: item.explanation || '',
+          categoryId: item.category_id,
+          categoryName: item.category?.name || '未分类',
+          tags: item.tags || [],
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          category: item.category
+        }
+        console.log('转换后的题目详情数据:', transformedData)
+        
+        return {
+          ...response,
+          data: transformedData
+        }
+      }
+      
+      return response
+    } catch (error) {
+      console.error('QuestionService.getQuestion 错误:', error)
+      throw error
+    }
   }
 
   // 搜索题目
   static async searchQuestions(params: QuestionSearchParams): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
-    return apiClient.getPaginated<Question>('/questions/search', params)
+    return apiClient.getPaginated<Question>('/api/v1/questions/search', params)
   }
 
   // 获取随机题目
   static async getRandomQuestions(count: number, categoryId?: number, difficulty?: QuestionDifficulty): Promise<ApiResponse<Question[]>> {
-    return apiClient.get<Question[]>('/questions/random', {
+    return apiClient.get<Question[]>('/api/v1/questions/random', {
       count,
       categoryId,
       difficulty
@@ -183,7 +221,7 @@ export class QuestionService {
 
   // 提交答案
   static async submitAnswer(data: SubmitAnswerRequest): Promise<ApiResponse<AnswerRecord>> {
-    return apiClient.post<AnswerRecord>('/questions/answer', data)
+    return apiClient.post<AnswerRecord>('/api/v1/answers', data)
   }
 
   // 获取题目统计
@@ -193,14 +231,14 @@ export class QuestionService {
     correctRate: number
     averageTime: number
   }>> {
-    return apiClient.get(`/questions/${questionId}/stats`)
+    return apiClient.get(`/api/v1/questions/${questionId}/stats`)
   }
 
   // 获取分类列表
   static async getCategories(parentId?: number): Promise<ApiResponse<Category[]>> {
     try {
       console.log('QuestionService.getCategories 调用参数:', { parentId })
-      const response = await apiClient.get<any>('/categories', { parentId })
+      const response = await apiClient.get<any>('/api/v1/categories', { parentId })
       console.log('QuestionService.getCategories 原始响应:', response)
       
       // 转换后端数据格式到前端期望格式
@@ -256,12 +294,12 @@ export class QuestionService {
 
   // 获取分类详情
   static async getCategory(id: number): Promise<ApiResponse<Category>> {
-    return apiClient.get<Category>(`/categories/${id}`)
+    return apiClient.get<Category>(`/api/v1/categories/${id}`)
   }
 
   // 获取分类下的题目
   static async getCategoryQuestions(categoryId: number, params?: Omit<QuestionSearchParams, 'categoryId'>): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
-    return apiClient.getPaginated<Question>(`/categories/${categoryId}/questions`, params)
+    return apiClient.getPaginated<Question>(`/api/v1/categories/${categoryId}/questions`, params)
   }
 
   // 获取用户答题记录
@@ -271,7 +309,7 @@ export class QuestionService {
     categoryId?: number
     isCorrect?: boolean
   }): Promise<ApiResponse<FrontendPaginatedResponse<AnswerRecord>>> {
-    return apiClient.getPaginated<AnswerRecord>('/answers', params)
+    return apiClient.getPaginated<AnswerRecord>('/api/v1/answers', params)
   }
 
   // 获取错题本
@@ -281,27 +319,27 @@ export class QuestionService {
     categoryId?: number
     isMastered?: boolean
   }): Promise<ApiResponse<FrontendPaginatedResponse<MistakeBook>>> {
-    return apiClient.getPaginated<MistakeBook>('/mistakes', params)
+    return apiClient.getPaginated<MistakeBook>('/api/v1/mistakes', params)
   }
 
   // 添加到错题本
   static async addToMistakeBook(questionId: number): Promise<ApiResponse<MistakeBook>> {
-    return apiClient.post<MistakeBook>('/mistakes', { questionId })
+    return apiClient.post<MistakeBook>('/api/v1/mistakes', { question_id: questionId })
   }
 
   // 从错题本移除
-  static async removeFromMistakeBook(questionId: number): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(`/mistakes/${questionId}`)
+  static async removeFromMistakeBook(mistakeId: number): Promise<ApiResponse<void>> {
+    return apiClient.delete<void>(`/api/v1/mistakes/${mistakeId}`)
   }
 
   // 标记错题为已掌握
   static async markMistakeAsMastered(questionId: number): Promise<ApiResponse<void>> {
-    return apiClient.put<void>(`/mistakes/${questionId}/master`)
+    return apiClient.put<void>(`/api/v1/mistakes/${questionId}/master`)
   }
 
   // 重置错题状态
   static async resetMistakeStatus(questionId: number): Promise<ApiResponse<void>> {
-    return apiClient.put<void>(`/mistakes/${questionId}/reset`)
+    return apiClient.put<void>(`/api/v1/mistakes/${questionId}/reset`)
   }
 
   // 获取分类进度
@@ -312,7 +350,7 @@ export class QuestionService {
     correctAnswered: number
     accuracyRate: number
   }>> {
-    return apiClient.get(`/categories/${categoryId}/progress`)
+    return apiClient.get(`/api/v1/categories/${categoryId}/progress`)
   }
 
   // 清空错题本
@@ -320,22 +358,22 @@ export class QuestionService {
     message: string
     deleted_count: number
   }>> {
-    return apiClient.delete('/mistakes/clear')
+    return apiClient.delete('/api/v1/mistakes/clear')
   }
 
   // 获取热门标签
   static async getPopularTags(limit?: number): Promise<ApiResponse<string[]>> {
-    return apiClient.get<string[]>('/questions/tags/popular', { limit })
+    return apiClient.get<string[]>('/api/v1/questions/tags/popular', { limit })
   }
 
   // 收藏题目
   static async favoriteQuestion(questionId: number): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(`/questions/${questionId}/favorite`)
+    return apiClient.post<void>(`/api/v1/questions/${questionId}/favorite`)
   }
 
   // 取消收藏题目
   static async unfavoriteQuestion(questionId: number): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(`/questions/${questionId}/favorite`)
+    return apiClient.delete<void>(`/api/v1/questions/${questionId}/favorite`)
   }
 
   // 获取收藏的题目
@@ -343,12 +381,12 @@ export class QuestionService {
     page?: number
     pageSize?: number
   }): Promise<ApiResponse<FrontendPaginatedResponse<Question>>> {
-    return apiClient.get<FrontendPaginatedResponse<Question>>('/questions/favorites', params)
+    return apiClient.get<FrontendPaginatedResponse<Question>>('/api/v1/questions/favorites', params)
   }
 
   // 举报题目
   static async reportQuestion(questionId: number, reason: string, description?: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(`/questions/${questionId}/report`, {
+    return apiClient.post<void>(`/api/v1/questions/${questionId}/report`, {
       reason,
       description
     })

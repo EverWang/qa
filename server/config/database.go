@@ -94,6 +94,32 @@ func initializeDefaultData() {
 		}
 	}
 
+	// 检查是否已存在admin用户在User表中
+	var adminUserCount int64
+	DB.Model(&models.User{}).Where("username = ?", "admin").Count(&adminUserCount)
+	if adminUserCount == 0 {
+		// 创建admin用户在User表中
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("Failed to hash password: %v", err)
+		} else {
+			adminUser := models.User{
+				Username: "admin",
+				Email:    "admin@example.com",
+				Password: string(hashedPassword),
+				Nickname: "管理员",
+				Role:     "admin",
+				Status:   "active",
+			}
+
+			if err := DB.Create(&adminUser).Error; err != nil {
+				log.Printf("Failed to create admin user: %v", err)
+			} else {
+				log.Println("Default admin user created in User table successfully (username: admin, password: 123456)")
+			}
+		}
+	}
+
 	// 检查是否已存在测试用户
 	var userCount int64
 	DB.Model(&models.User{}).Where("username = ?", "testuser").Count(&userCount)
