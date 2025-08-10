@@ -1,5 +1,5 @@
 # 使用Node.js作为构建环境
-FROM node:18-alpine AS builder
+FROM docker.m.daocloud.io/node:18-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
