@@ -29,7 +29,7 @@ check_docker() {
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker compose &> /dev/null; then
         print_message "Docker Compose未安装，请先安装Docker Compose" $RED
         exit 1
     fi
@@ -38,13 +38,13 @@ check_docker() {
 # 启动服务
 start_services() {
     print_message "正在启动刷刷题系统..." $BLUE
-    docker-compose up -d
+    docker compose up -d
     
     print_message "等待服务启动..." $YELLOW
     sleep 10
     
     print_message "检查服务状态..." $BLUE
-    docker-compose ps
+    docker compose ps
     
     print_message "服务启动完成！" $GREEN
     print_message "访问地址：" $GREEN
@@ -57,34 +57,34 @@ start_services() {
 # 停止服务
 stop_services() {
     print_message "正在停止刷刷题系统..." $BLUE
-    docker-compose down
+    docker compose down
     print_message "服务已停止" $GREEN
 }
 
 # 重启服务
 restart_services() {
     print_message "正在重启刷刷题系统..." $BLUE
-    docker-compose restart
+    docker compose restart
     print_message "服务已重启" $GREEN
 }
 
 # 查看日志
 view_logs() {
     print_message "查看服务日志..." $BLUE
-    docker-compose logs -f
+    docker compose logs -f
 }
 
 # 重新构建镜像
 build_images() {
     print_message "正在重新构建镜像..." $BLUE
-    docker-compose build --no-cache
+    docker compose build --no-cache
     print_message "镜像构建完成" $GREEN
 }
 
 # 清理资源
 clean_up() {
     print_message "正在清理Docker资源..." $BLUE
-    docker-compose down -v
+    docker compose down -v
     docker system prune -f
     print_message "清理完成" $GREEN
 }
@@ -93,7 +93,7 @@ clean_up() {
 backup_database() {
     print_message "正在备份数据库..." $BLUE
     mkdir -p backups
-    docker-compose exec mysql mysqldump -u qaminiprogram -pqaminiprogram123 qaminiprogram > "backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+    docker compose exec mysql mysqldump -u qaminiprogram -pqaminiprogram123 qaminiprogram > "backups/backup_$(date +%Y%m%d_%H%M%S).sql"
     print_message "数据库备份完成" $GREEN
 }
 
@@ -106,7 +106,7 @@ restore_database() {
     fi
     
     print_message "正在恢复数据库..." $BLUE
-    docker-compose exec -T mysql mysql -u qaminiprogram -pqaminiprogram123 qaminiprogram < "$2"
+    docker compose exec -T mysql mysql -u qaminiprogram -pqaminiprogram123 qaminiprogram < "$2"
     print_message "数据库恢复完成" $GREEN
 }
 
