@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // 后端服务地址
+  baseURL: 'http://localhost/api/v1', // 后端服务地址
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

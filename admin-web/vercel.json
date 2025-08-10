@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "shuashuati-admin",
   "builds": [
     {
       "src": "package.json",
@@ -19,10 +18,5 @@
       "dest": "/index.html"
     }
   ],
-  "functions": {
-    "dist/**": {
-      "maxDuration": 30
-    }
-  },
   "regions": ["hkg1"]
 }

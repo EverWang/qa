@@ -77,8 +77,7 @@ type Question struct {
 	ID            uint      `json:"id" gorm:"primaryKey"`
 	Title         string    `json:"title" gorm:"size:200;not null"`
 	Content       string    `json:"content" gorm:"type:text;not null"`
-	Type          string    `json:"type" gorm:"type:enum('single','multiple','judge','fill');default:'single'"`
-	Options       JSONArray `json:"options" gorm:"type:json"`
+	Options       JSONArray `json:"options" gorm:"type:json;not null"`
 	CorrectAnswer int       `json:"correct_answer" gorm:"not null"`
 	Explanation   string    `json:"explanation" gorm:"type:text"`
 	Difficulty    string    `json:"difficulty" gorm:"type:enum('easy','medium','hard');default:'medium'"`

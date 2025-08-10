@@ -76,7 +76,7 @@
               </div>
               <div class="flex-1">
                 <h4 class="font-medium text-gray-800">{{ category.name }}</h4>
-                <p class="text-sm text-gray-500">{{ category.questionCount || category.question_count || 0 }} 道题</p>
+                <p class="text-sm text-gray-500">{{ category.questionCount || 0 }} 道题</p>
               </div>
             </div>
           </div>
@@ -356,8 +356,8 @@ const loadRecommendedQuestions = async () => {
         content: q.content,
         difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
         category: {
-          id: q.category_id || q.categoryId,
-          name: q.category?.name || q.categoryName || '未分类'
+          id: q.categoryId,
+          name: q.categoryName || '未分类'
         }
       }))
       console.log('推荐题目加载成功，数量:', recommendedQuestions.value.length)
@@ -402,9 +402,9 @@ const loadCategories = async () => {
         return { icon: GraduationCap, color: '#8B5CF6' }
       }
       
-      // 只显示一级分类（没有父分类的分类）且状态为启用的分类
+      // 只显示一级分类（没有父分类的分类）
       const topLevelCategories = response.data.filter(cat => 
-        (!cat.parent_id || cat.parent_id === 0) && cat.status === 1
+        (!cat.parentId || cat.parentId === 0)
       )
       
       categories.value = topLevelCategories.map((cat) => {
@@ -443,12 +443,8 @@ const loadOverviewStats = async () => {
       const data = response.data
       totalQuestions.value = data.totalQuestions || 0
       totalUsers.value = data.totalUsers || 0
-      // 计算通过率：如果有答题数据，计算通过率，否则使用默认值
-      if (data.totalAnswers && data.totalAnswers > 0) {
-        passRate.value = Math.round((data.correctAnswers || 0) / data.totalAnswers * 100)
-      } else {
-        passRate.value = 75 // 默认通过率
-      }
+      // 计算通过率：使用默认值，因为概览统计中没有正确答案数据
+      passRate.value = 75 // 默认通过率
       console.log('概览统计加载成功:', { totalQuestions: totalQuestions.value, totalUsers: totalUsers.value, passRate: passRate.value })
     } else {
       console.log('概览统计API响应失败:', response)

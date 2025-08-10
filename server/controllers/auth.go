@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"qaminiprogram/config"
@@ -70,7 +69,7 @@ func UnifiedLogin(c *gin.Context) {
 	var passwordReq PasswordLoginRequest
 	if err := c.ShouldBindJSON(&passwordReq); err == nil && passwordReq.Type == "password" {
 		// 处理密码登录
-		PasswordLogin(c, passwordReq)
+		PasswordLogin(c)
 		return
 	}
 
@@ -78,7 +77,7 @@ func UnifiedLogin(c *gin.Context) {
 	var wechatReq WechatLoginRequest
 	if err := c.ShouldBindJSON(&wechatReq); err == nil {
 		// 处理微信登录
-		WechatLogin(c, wechatReq)
+		WechatLogin(c)
 		return
 	}
 
@@ -86,7 +85,13 @@ func UnifiedLogin(c *gin.Context) {
 }
 
 // PasswordLogin 密码登录
-func PasswordLogin(c *gin.Context, req PasswordLoginRequest) {
+func PasswordLogin(c *gin.Context) {
+	var req PasswordLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "参数错误")
+		return
+	}
+
 	db := config.GetDB()
 	var user models.User
 
@@ -128,7 +133,12 @@ func PasswordLogin(c *gin.Context, req PasswordLoginRequest) {
 }
 
 // WechatLogin 微信登录
-func WechatLogin(c *gin.Context, req WechatLoginRequest) {
+func WechatLogin(c *gin.Context) {
+	var req WechatLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "参数错误")
+		return
+	}
 
 	// 调用微信API获取openid
 	openID, err := getWechatOpenID(req.Code)
