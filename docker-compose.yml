@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # MySQL数据库服务
   mysql:
-    image: mysql:8.0
+    image: docker.m.daocloud.io/mysql:8.0
     container_name: qaminiprogram_mysql
     restart: always
     environment:
