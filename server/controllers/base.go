@@ -56,7 +56,7 @@ func PageSuccessResponse(c *gin.Context, data interface{}, total int64, page, si
 
 // GetUserID 从上下文获取用户ID
 func GetUserID(c *gin.Context) (uint, bool) {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userId")
 	if !exists {
 		return 0, false
 	}

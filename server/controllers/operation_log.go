@@ -87,7 +87,7 @@ func LogOperation(c *gin.Context, action, resource, description string) {
 	operator := "Unknown"
 	
 	// 尝试从JWT中获取用户ID和角色
-	if userID, exists := c.Get("user_id"); exists {
+	if userID, exists := c.Get("userId"); exists {
 		if role, roleExists := c.Get("role"); roleExists {
 			db := config.GetDB()
 			

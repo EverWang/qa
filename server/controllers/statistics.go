@@ -35,7 +35,7 @@ type QuestionStatistics struct {
 
 // UserStatistics 用户统计
 type UserStatistics struct {
-	UserID          uint    `json:"user_id"`
+	UserID          uint    `json:"userId"`
 	Nickname        string  `json:"nickname"`
 	TotalAnswered   int64   `json:"total_answered"`
 	CorrectAnswered int64   `json:"correct_answered"`

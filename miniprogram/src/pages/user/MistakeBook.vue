@@ -69,7 +69,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">复习状态</label>
             <select v-model="selectedStatus" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               <option value="">全部状态</option>
-              <option value="not_reviewed">未复习</option>
+              <option value="notReviewed">未复习</option>
               <option value="reviewed">已复习</option>
               <option value="mastered">已掌握</option>
             </select>
@@ -100,7 +100,7 @@
               <div class="flex items-center space-x-2">
                 <button 
                   @click="toggleMastered(mistake)"
-                  :class="mistake.status === 'mastered' ? 'text-green-600' : 'text-gray-400'"
+                  :class="mistake.isMastered ? 'text-green-600' : 'text-gray-400'"
                   class="hover:text-green-600 transition-colors duration-200"
                 >
                   <CheckCircle class="w-5 h-5" />
@@ -173,7 +173,7 @@ import { questionService, type Question, type Category, type MistakeBook } from 
 
 interface MistakeQuestion extends MistakeBook {
   question: Question
-  status: 'not_reviewed' | 'reviewed' | 'mastered'
+  status: 'notReviewed' | 'reviewed' | 'mastered'
   reviewCount: number
   isMastered: boolean
   createdAt: string
@@ -245,7 +245,7 @@ const getDifficultyText = (difficulty: string) => {
 
 const getStatusClass = (status: string) => {
   switch (status) {
-    case 'not_reviewed':
+    case 'notReviewed':
       return 'bg-red-100 text-red-800'
     case 'reviewed':
       return 'bg-orange-100 text-orange-800'
@@ -258,7 +258,7 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'not_reviewed':
+    case 'notReviewed':
       return '未复习'
     case 'reviewed':
       return '已复习'
@@ -306,28 +306,37 @@ const viewQuestion = (questionId: number) => {
   router.push(`/question/${questionId}`)
 }
 
-const reviewQuestion = (mistake: MistakeQuestion) => {
-  // 更新复习状态
-  mistake.status = 'reviewed'
-  mistake.lastReviewAt = new Date().toISOString()
-  mistake.reviewCount++
-  
-  // 跳转到题目页面
-  router.push(`/question/${mistake.question.id}`)
+const reviewQuestion = async (mistake: MistakeQuestion) => {
+  try {
+    // 如果题目已掌握，先重置掌握状态
+    if (mistake.isMastered) {
+      await questionService.resetMistakeStatus(mistake.question.id)
+      console.log('重置掌握状态成功')
+    }
+    
+    // 跳转到题目页面
+    router.push(`/question/${mistake.question.id}`)
+  } catch (error) {
+    console.error('重置掌握状态失败:', error)
+    // 即使重置失败也跳转到题目页面
+    router.push(`/question/${mistake.question.id}`)
+  }
 }
 
 const toggleMastered = async (mistake: MistakeQuestion) => {
   try {
-    if (mistake.status === 'mastered') {
+    if (mistake.isMastered) {
       // 重置掌握状态
       await questionService.resetMistakeStatus(mistake.question.id)
-      mistake.status = 'reviewed'
+      console.log('重置掌握状态成功')
     } else {
       // 标记为已掌握
       await questionService.markMistakeAsMastered(mistake.question.id)
-      mistake.status = 'mastered'
-      mistake.lastReviewAt = new Date().toISOString()
+      console.log('标记为已掌握成功')
     }
+    
+    // API调用成功后重新加载错题本数据以确保状态同步
+    await loadMistakeQuestions()
   } catch (error) {
     console.error('更新掌握状态失败:', error)
     alert('操作失败，请重试')
@@ -370,7 +379,7 @@ const clearAllMistakes = async () => {
     const response = await questionService.clearMistakeBook()
     if (response.success) {
       mistakeQuestions.value = []
-      alert(`错题本已清空，共删除 ${response.data.deleted_count} 道题目`)
+      alert(`错题本已清空，共删除 ${response.data.deletedCount} 道题目`)
     }
   } catch (error) {
     console.error('清空错题本失败:', error)

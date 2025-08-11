@@ -33,10 +33,12 @@ func SetupRoutes(r *gin.Engine) {
 			public.GET("/questions", controllers.GetQuestions)
 			public.GET("/questions/:id", controllers.GetQuestionByID)
 			public.GET("/questions/random", controllers.GetRandomQuestions)
-			public.GET("/questions/category/:category_id", controllers.GetQuestionsByCategory)
+			public.GET("/questions/category/:categoryId", controllers.GetQuestionsByCategory)
 			
 			// 公开统计数据
 			public.GET("/statistics/overview", controllers.GetOverviewStatistics)
+			
+
 		}
 
 		// 需要用户认证的路由
@@ -60,6 +62,9 @@ func SetupRoutes(r *gin.Engine) {
 			auth.POST("/mistakes", controllers.AddToMistakeBook)
 			auth.DELETE("/mistakes/:id", controllers.RemoveFromMistakeBook)
 			auth.DELETE("/mistakes/clear", controllers.ClearMistakeBook)
+			auth.PUT("/mistakes/:questionId/master", controllers.MarkMistakeAsMastered)
+			auth.PUT("/mistakes/:questionId/reset", controllers.ResetMistakeStatus)
+			auth.GET("/mistakes/statistics", controllers.GetMistakeBookStatistics)
 		}
 
 		// 管理员路由

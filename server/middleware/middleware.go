@@ -108,7 +108,7 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		// 将用户信息存储到上下文
-		c.Set("user_id", claims.UserID)
+		c.Set("userId", claims.UserID)
 		c.Set("openid", claims.OpenID)
 		c.Set("role", claims.Role)
 		c.Next()
@@ -133,7 +133,7 @@ func AdminAuth() gin.HandlerFunc {
 
 // JWTClaims JWT声明结构
 type JWTClaims struct {
-	UserID uint   `json:"user_id"`
+	UserID uint   `json:"userId"`
 	OpenID string `json:"openid"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims

@@ -108,7 +108,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="question_count" label="题目数量" width="100" align="center">
+          <el-table-column prop="questionCount" label="题目数量" width="100" align="center">
             <template #default="{ row }">
               <el-tag type="success" size="small">
                 {{ row.question_count || 0 }}
@@ -116,7 +116,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="sort_order" label="排序" width="80" align="center">
+          <el-table-column prop="sortOrder" label="排序" width="80" align="center">
             <template #default="{ row }">
               <span class="sort-order">{{ row.sort_order }}</span>
             </template>
@@ -133,7 +133,7 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="created_at" label="创建时间" width="160">
+          <el-table-column prop="createdAt" label="创建时间" width="160">
             <template #default="{ row }">
               <span>{{ formatDate(row.created_at) }}</span>
             </template>
@@ -195,7 +195,7 @@
           />
         </el-form-item>
         
-        <el-form-item label="上级分类" prop="parent_id">
+        <el-form-item label="上级分类" prop="parentId">
           <el-select
             v-model="form.parent_id"
             placeholder="请选择上级分类（可选）"
@@ -223,7 +223,7 @@
           />
         </el-form-item>
         
-        <el-form-item label="排序权重" prop="sort_order">
+        <el-form-item label="排序权重" prop="sortOrder">
           <el-input-number
             v-model="form.sort_order"
             :min="0"

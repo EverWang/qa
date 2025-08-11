@@ -25,7 +25,7 @@
               label-width="120px"
               class="settings-form"
             >
-              <el-form-item label="系统名称" prop="system_name">
+              <el-form-item label="系统名称" prop="systemName">
                 <el-input
                   v-model="basicForm.system_name"
                   placeholder="请输入系统名称"
@@ -33,7 +33,7 @@
                 />
               </el-form-item>
               
-              <el-form-item label="系统描述" prop="system_description">
+              <el-form-item label="系统描述" prop="systemDescription">
                 <el-input
                   v-model="basicForm.system_description"
                   type="textarea"
@@ -43,7 +43,7 @@
                 />
               </el-form-item>
               
-              <el-form-item label="系统版本" prop="system_version">
+              <el-form-item label="系统版本" prop="systemVersion">
                 <el-input
                   v-model="basicForm.system_version"
                   placeholder="请输入系统版本"
@@ -51,7 +51,7 @@
                 />
               </el-form-item>
               
-              <el-form-item label="联系邮箱" prop="contact_email">
+              <el-form-item label="联系邮箱" prop="contactEmail">
                 <el-input
                   v-model="basicForm.contact_email"
                   type="email"
@@ -99,7 +99,7 @@
               label-width="150px"
               class="settings-form"
             >
-              <el-form-item label="每日答题限制" prop="daily_limit">
+              <el-form-item label="每日答题限制" prop="dailyLimit">
                 <el-input-number
                   v-model="quizForm.daily_limit"
                   :min="0"
@@ -109,7 +109,7 @@
                 <span class="form-tip">用户每日最多可答题数量，0表示无限制</span>
               </el-form-item>
               
-              <el-form-item label="答题时间限制" prop="time_limit">
+              <el-form-item label="答题时间限制" prop="timeLimit">
                 <el-input-number
                   v-model="quizForm.time_limit"
                   :min="0"
@@ -124,7 +124,7 @@
               </el-form-item>
               
               <div v-if="quizForm.enable_points" class="points-config">
-                <el-form-item label="正确答题积分" prop="correct_points">
+                <el-form-item label="正确答题积分" prop="correctPoints">
                   <el-input-number
                     v-model="quizForm.correct_points"
                     :min="0"
@@ -132,7 +132,7 @@
                   />
                 </el-form-item>
                 
-                <el-form-item label="错误答题积分" prop="wrong_points">
+                <el-form-item label="错误答题积分" prop="wrongPoints">
                   <el-input-number
                     v-model="quizForm.wrong_points"
                     :min="-100"
@@ -153,7 +153,7 @@
               <el-form-item label="显示解析">
                 <el-radio-group v-model="quizForm.show_explanation">
                   <el-radio label="always">总是显示</el-radio>
-                  <el-radio label="after_answer">答题后显示</el-radio>
+                  <el-radio label="afterAnswer">答题后显示</el-radio>
                   <el-radio label="never">从不显示</el-radio>
                 </el-radio-group>
               </el-form-item>
@@ -209,8 +209,8 @@
                   </template>
                   <el-table :data="statistics.user_stats" border>
                     <el-table-column prop="date" label="日期" width="120" />
-                    <el-table-column prop="new_users" label="新增用户" />
-                    <el-table-column prop="active_users" label="活跃用户" />
+                    <el-table-column prop="newUsers" label="新增用户" />
+                    <el-table-column prop="activeUsers" label="活跃用户" />
                   </el-table>
                 </el-card>
               </el-col>
@@ -221,8 +221,8 @@
                   </template>
                   <el-table :data="statistics.answer_stats" border>
                     <el-table-column prop="date" label="日期" width="120" />
-                    <el-table-column prop="total_answers" label="总答题" />
-                    <el-table-column prop="correct_rate" label="正确率" />
+                    <el-table-column prop="totalAnswers" label="总答题" />
+                    <el-table-column prop="correctRate" label="正确率" />
                   </el-table>
                 </el-card>
               </el-col>

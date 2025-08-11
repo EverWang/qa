@@ -57,7 +57,7 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
-                  <el-form-item label="题目分类" prop="category_id">
+                  <el-form-item label="题目分类" prop="categoryId">
                     <el-select 
                       v-model="form.category_id" 
                       placeholder="请选择分类"

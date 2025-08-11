@@ -128,7 +128,7 @@
             <span>{{ row.category?.name || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180">
+        <el-table-column prop="createdAt" label="创建时间" width="180">
           <template #default="{ row }">
             <span>{{ formatDate(row.created_at) }}</span>
           </template>
@@ -281,10 +281,10 @@ const fetchQuestions = async () => {
         options: ['A. 前端框架', 'B. 后端框架', 'C. 数据库', 'D. 编程语言'],
         answer: 'A',
         explanation: 'Vue.js 是一个用于构建用户界面的渐进式前端框架。',
-        category_id: 1,
+        categoryId: 1,
         category: { id: 1, name: '前端开发' },
-        created_at: '2024-01-15 10:00:00',
-        updated_at: '2024-01-15 10:00:00'
+        createdAt: '2024-01-15 10:30:00',
+        updatedAt: '2024-01-15 10:30:00'
       },
       {
         id: 2,
@@ -294,10 +294,10 @@ const fetchQuestions = async () => {
         options: ['A. 函数', 'B. 对象', 'C. 变量', 'D. 函数和其词法环境的组合'],
         answer: 'D',
         explanation: '闭包是函数和声明该函数的词法环境的组合。',
-        category_id: 1,
+        categoryId: 1,
         category: { id: 1, name: '前端开发' },
-        created_at: '2024-01-15 11:00:00',
-        updated_at: '2024-01-15 11:00:00'
+        createdAt: '2024-01-15 11:00:00',
+        updatedAt: '2024-01-15 11:00:00'
       }
     ]
     total.value = 2

@@ -1,161 +1,144 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- 顶部导航 -->
-    <div class="bg-white shadow-sm border-b">
-      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-        <button @click="goBack" class="flex items-center text-gray-600 hover:text-gray-800">
-          <ArrowLeft class="w-5 h-5 mr-1" />
-          <span>返回</span>
-        </button>
-        <h1 class="text-lg font-medium text-gray-800">题目详情</h1>
-        <button @click="shareQuestion" class="flex items-center text-blue-600 hover:text-blue-700">
-          <Share2 class="w-5 h-5 mr-1" />
-          <span>分享</span>
-        </button>
+    <!-- 顶部导航栏 -->
+    <div class="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div class="max-w-4xl mx-auto px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <button @click="goBack" class="flex items-center text-gray-600 hover:text-gray-800">
+              <ArrowLeft class="w-5 h-5" />
+            </button>
+            <h1 class="text-lg font-semibold text-gray-800">题目详情</h1>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button 
+              @click="shareQuestion" 
+              class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+            >
+              <Share2 class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="max-w-4xl mx-auto p-4">
+    <!-- 题目内容 -->
+    <div class="max-w-4xl mx-auto p-4" v-if="question">
       <!-- 题目信息 -->
       <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center space-x-2">
-            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-              {{ question?.category?.name }}
-            </span>
-            <span class="px-2 py-1 text-xs rounded-full" :class="difficultyClass">
-              {{ difficultyText }}
-            </span>
-          </div>
-          <div class="text-sm text-gray-500">
-            题目 {{ questionId }}
-          </div>
+        <div class="flex items-center space-x-2 mb-4">
+          <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+            {{ question.categoryName }}
+          </span>
+          <span class="px-3 py-1 text-sm rounded-full" :class="difficultyClass">
+            {{ difficultyText }}
+          </span>
         </div>
-
-        <h2 class="text-xl font-medium text-gray-800 mb-4">{{ question?.title }}</h2>
-        <div class="text-gray-700 mb-6 leading-relaxed" v-html="question?.content"></div>
-
+        
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">{{ question.title }}</h2>
+        <div class="text-gray-700 mb-6" v-html="question.content"></div>
+        
         <!-- 选项 -->
-        <div class="space-y-3">
-          <div
-            v-for="(option, index) in question?.options"
+        <div class="space-y-3" v-if="question.options && question.options.length > 0">
+          <div 
+            v-for="(option, index) in question.options" 
             :key="index"
             @click="selectOption(index)"
-            class="p-4 border rounded-lg cursor-pointer transition-all duration-200"
+            class="flex items-center p-4 border rounded-lg cursor-pointer transition-colors"
             :class="getOptionClass(index)"
           >
-            <div class="flex items-center">
-              <div class="w-6 h-6 rounded-full border-2 mr-3 flex items-center justify-center" :class="getOptionIndicatorClass(index)">
-                <span class="text-sm font-medium">{{ String.fromCharCode(65 + index) }}</span>
-              </div>
-              <span class="flex-1">{{ option }}</span>
-              <CheckCircle v-if="showAnswer && index === question?.correctAnswer" class="w-5 h-5 text-green-600" />
-              <XCircle v-if="showAnswer && selectedOption === index && index !== question?.correctAnswer" class="w-5 h-5 text-red-600" />
+            <div class="flex items-center justify-center w-8 h-8 rounded-full mr-3" :class="getOptionIndicatorClass(index)">
+              <span class="text-sm font-medium">{{ String.fromCharCode(65 + index) }}</span>
             </div>
+            <div class="flex-1 text-gray-800">{{ option.content || option }}</div>
           </div>
         </div>
-
-        <!-- 答题按钮 -->
-        <div class="mt-6 flex space-x-3">
-          <button
-            v-if="!showAnswer"
+        
+        <!-- 提交按钮 -->
+        <div class="mt-6 flex justify-center" v-if="!isAnswered">
+          <button 
             @click="submitAnswer"
             :disabled="selectedOption === null"
-            class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+            class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             提交答案
           </button>
-          <button
-            v-if="showAnswer"
+        </div>
+      </div>
+      
+      <!-- 答题结果 -->
+      <div v-if="showResult" class="bg-white rounded-lg shadow-sm p-6 mb-4">
+        <div class="flex items-center space-x-2 mb-4">
+          <CheckCircle v-if="isCorrect" class="w-6 h-6 text-green-600" />
+          <XCircle v-else class="w-6 h-6 text-red-600" />
+          <span class="text-lg font-semibold" :class="isCorrect ? 'text-green-600' : 'text-red-600'">
+            {{ isCorrect ? '回答正确！' : '回答错误' }}
+          </span>
+        </div>
+        
+        <div v-if="!isCorrect" class="mb-4">
+          <p class="text-gray-600 mb-2">正确答案：</p>
+          <p class="text-gray-800 font-medium">{{ getCorrectAnswerText() }}</p>
+        </div>
+        
+        <div v-if="question.explanation" class="mb-4">
+          <p class="text-gray-600 mb-2">题目解析：</p>
+          <div class="text-gray-800" v-html="question.explanation"></div>
+        </div>
+        
+        <div class="flex space-x-3">
+          <button 
             @click="nextQuestion"
-            class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             下一题
           </button>
-          <button
-            v-if="showAnswer && !isCorrect"
+          <button 
+            v-if="!isCorrect"
             @click="addToMistakes"
-            :disabled="isAddingToMistakes"
-            class="px-4 py-3 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors duration-200 flex items-center"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
-            <BookmarkPlus class="w-4 h-4 mr-1" />
-            {{ isAddingToMistakes ? '添加中...' : '加入错题本' }}
+            加入错题本
           </button>
         </div>
-      </div>
-
-      <!-- 答案解析 -->
-      <div v-if="showAnswer && question?.explanation" class="bg-white rounded-lg shadow-sm p-6">
-        <h3 class="text-lg font-medium text-gray-800 mb-3 flex items-center">
-          <Lightbulb class="w-5 h-5 mr-2 text-yellow-500" />
-          答案解析
-        </h3>
-        <div class="text-gray-700 leading-relaxed" v-html="question.explanation"></div>
       </div>
     </div>
-
-    <!-- 答题结果弹窗 -->
-    <div v-if="showResultModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 m-4 max-w-sm w-full">
-        <div class="text-center">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" :class="isCorrect ? 'bg-green-100' : 'bg-red-100'">
-            <CheckCircle v-if="isCorrect" class="w-8 h-8 text-green-600" />
-            <XCircle v-else class="w-8 h-8 text-red-600" />
-          </div>
-          <h3 class="text-lg font-medium mb-2" :class="isCorrect ? 'text-green-800' : 'text-red-800'">
-            {{ isCorrect ? '回答正确！' : '回答错误' }}
-          </h3>
-          <p class="text-gray-600 mb-4">
-            {{ isCorrect ? '恭喜你答对了这道题！' : `正确答案是 ${String.fromCharCode(65 + (question?.correctAnswer || 0))}` }}
-          </p>
-          <button
-            @click="closeResultModal"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
-          >
-            查看解析
-          </button>
-        </div>
+    
+    <!-- 加载状态 -->
+    <div v-else class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">加载中...</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Share2, CheckCircle, XCircle, Lightbulb, BookmarkPlus } from 'lucide-vue-next'
+import { 
+  ArrowLeft, Share2, CheckCircle, XCircle 
+} from 'lucide-vue-next'
+import { QuestionService, type Question } from '@/services/question'
 import { useAuthStore } from '@/stores/auth'
-import { QuestionService } from '@/services/question'
-
-interface Question {
-  id: number
-  title: string
-  content: string
-  options: string[]
-  correctAnswer: number
-  explanation: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  category: {
-    id: number
-    name: string
-  }
-}
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const questionId = computed(() => route.params.id as string)
+// 响应式数据
 const question = ref<Question | null>(null)
 const selectedOption = ref<number | null>(null)
-const showAnswer = ref(false)
-const showResultModal = ref(false)
+const isAnswered = ref(false)
+const showResult = ref(false)
 const isCorrect = ref(false)
-const isAddingToMistakes = ref(false)
+const startTime = ref<number>(Date.now())
 
-// 难度样式
+// 计算属性
 const difficultyClass = computed(() => {
-  switch (question.value?.difficulty) {
+  if (!question.value) return ''
+  switch (question.value.difficulty) {
     case 'easy':
       return 'bg-green-100 text-green-800'
     case 'medium':
@@ -168,7 +151,8 @@ const difficultyClass = computed(() => {
 })
 
 const difficultyText = computed(() => {
-  switch (question.value?.difficulty) {
+  if (!question.value) return ''
+  switch (question.value.difficulty) {
     case 'easy':
       return '简单'
     case 'medium':
@@ -180,194 +164,189 @@ const difficultyText = computed(() => {
   }
 })
 
-// 选项样式
+// 方法
 const getOptionClass = (index: number) => {
-  if (!showAnswer.value) {
-    return selectedOption.value === index
-      ? 'border-blue-500 bg-blue-50'
-      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+  if (!showResult.value) {
+    return selectedOption.value === index 
+      ? 'border-blue-500 bg-blue-50' 
+      : 'border-gray-200 hover:border-gray-300'
   }
   
-  if (index === question.value?.correctAnswer) {
-    return 'border-green-500 bg-green-50'
+  // 显示结果时的样式
+  if (question.value?.options && Array.isArray(question.value.options)) {
+    const option = question.value.options[index]
+    if (option && typeof option === 'object' && option.isCorrect) {
+      return 'border-green-500 bg-green-50'
+    }
   }
   
-  if (selectedOption.value === index && index !== question.value?.correctAnswer) {
+  if (selectedOption.value === index && !isCorrect.value) {
     return 'border-red-500 bg-red-50'
   }
   
-  return 'border-gray-200 bg-gray-50'
+  return 'border-gray-200'
 }
 
 const getOptionIndicatorClass = (index: number) => {
-  if (!showAnswer.value) {
-    return selectedOption.value === index
-      ? 'border-blue-500 bg-blue-500 text-white'
-      : 'border-gray-300 text-gray-600'
+  if (!showResult.value) {
+    return selectedOption.value === index 
+      ? 'bg-blue-600 text-white' 
+      : 'bg-gray-100 text-gray-600'
   }
   
-  if (index === question.value?.correctAnswer) {
-    return 'border-green-500 bg-green-500 text-white'
+  // 显示结果时的样式
+  if (question.value?.options && Array.isArray(question.value.options)) {
+    const option = question.value.options[index]
+    if (option && typeof option === 'object' && option.isCorrect) {
+      return 'bg-green-600 text-white'
+    }
   }
   
-  if (selectedOption.value === index && index !== question.value?.correctAnswer) {
-    return 'border-red-500 bg-red-500 text-white'
+  if (selectedOption.value === index && !isCorrect.value) {
+    return 'bg-red-600 text-white'
   }
   
-  return 'border-gray-300 text-gray-600'
+  return 'bg-gray-100 text-gray-600'
 }
 
-// 选择选项
 const selectOption = (index: number) => {
-  if (!showAnswer.value) {
+  if (!isAnswered.value) {
     selectedOption.value = index
   }
 }
 
-// 提交答案
 const submitAnswer = async () => {
-  if (selectedOption.value === null) return
+  if (selectedOption.value === null || !question.value) return
   
-  isCorrect.value = selectedOption.value === question.value?.correctAnswer
-  showResultModal.value = true
-  
-  // 记录答题结果
   try {
-    // 调用真实API记录答题结果
+    const timeSpent = Math.floor((Date.now() - startTime.value) / 1000)
+    const userAnswer = String.fromCharCode(65 + selectedOption.value)
+    
     const response = await QuestionService.submitAnswer({
-      question_id: parseInt(questionId.value),
-      user_answer: selectedOption.value,
-      time_spent: 0 // 实际项目中需要计算答题时间
+      questionId: question.value.id,
+      userAnswer,
+      timeSpent
     })
     
     if (response.success) {
-      console.log('记录答题结果成功:', response.data)
-    } else {
-      console.error('记录答题结果失败:', response.message)
-    }
-  } catch (error) {
-    console.error('记录答题结果失败:', error)
-  }
-}
-
-// 关闭结果弹窗
-const closeResultModal = () => {
-  showResultModal.value = false
-  showAnswer.value = true
-}
-
-// 下一题
-const nextQuestion = async () => {
-  try {
-    const nextId = parseInt(questionId.value) + 1
-    
-    // 检查下一题是否存在
-    const response = await QuestionService.getQuestion(nextId)
-    if (response.success) {
-      // 重置状态
-      selectedOption.value = null
-      showAnswer.value = false
-      showResultModal.value = false
-      isCorrect.value = false
+      isAnswered.value = true
+      showResult.value = true
+      isCorrect.value = response.data?.isCorrect || false
       
-      // 跳转到下一题
-      router.push(`/question/${nextId}`)
-    } else {
-      alert('没有更多题目了')
+      if (isCorrect.value) {
+        alert('回答正确！')
+      } else {
+        alert('回答错误，请查看解析')
+      }
     }
   } catch (error) {
-    console.error('加载下一题失败:', error)
-    alert('加载下一题失败，请重试')
+    console.error('提交答案失败:', error)
+    alert('提交答案失败，请重试')
   }
 }
 
-// 加入错题本
+const getCorrectAnswerText = () => {
+  if (!question.value?.options) return ''
+  
+  if (Array.isArray(question.value.options)) {
+    const correctIndex = question.value.options.findIndex((opt: any) => 
+      typeof opt === 'object' ? opt.isCorrect : false
+    )
+    if (correctIndex !== -1) {
+      const option = question.value.options[correctIndex]
+      const content = typeof option === 'object' ? option.content : option
+      return `${String.fromCharCode(65 + correctIndex)}. ${content}`
+    }
+  }
+  
+  return question.value.correctAnswer?.toString() || ''
+}
+
+const nextQuestion = () => {
+  // 随机获取下一题
+  router.push('/questions/random')
+}
+
 const addToMistakes = async () => {
-  if (!authStore.isLoggedIn || authStore.isGuest) {
-    alert('请先登录后再使用错题本功能')
+  if (!question.value || !authStore.isLoggedIn) {
+    alert('请先登录')
     return
   }
   
   try {
-    isAddingToMistakes.value = true
-    
-    // 调用真实API
-    const response = await QuestionService.addToMistakeBook(parseInt(questionId.value))
-    
-    if (response.success) {
-      console.log('添加到错题本成功:', questionId.value)
-      alert('已添加到错题本')
-    } else {
-      throw new Error(response.message || '添加失败')
-    }
+    await QuestionService.addToMistakeBook(question.value.id)
+    alert('已添加到错题本')
   } catch (error) {
     console.error('添加到错题本失败:', error)
-    alert('添加失败，请重试')
-  } finally {
-    isAddingToMistakes.value = false
+    alert('添加到错题本失败')
   }
 }
 
-// 分享题目
 const shareQuestion = () => {
+  if (!question.value) return
+  
+  const url = window.location.href
+  const title = `刷刷题 - ${question.value.title}`
+  
   if (navigator.share) {
     navigator.share({
-      title: question.value?.title || '刷刷题',
-      text: '来看看这道题目',
-      url: window.location.href
+      title,
+      url
     })
   } else {
     // 复制链接到剪贴板
-    navigator.clipboard.writeText(window.location.href)
-    alert('链接已复制到剪贴板')
+    navigator.clipboard.writeText(url).then(() => {
+      alert('链接已复制到剪贴板')
+    })
   }
 }
 
-// 返回
 const goBack = () => {
   router.back()
 }
 
-// 加载题目数据
 const loadQuestion = async () => {
+  const questionId = Number(route.params.id)
+  if (!questionId) {
+    alert('题目ID无效')
+    router.back()
+    return
+  }
+  
   try {
-    // 重置状态
-    selectedOption.value = null
-    showAnswer.value = false
-    showResultModal.value = false
-    isCorrect.value = false
-    
-    // 调用真实API获取题目数据
-    const response = await QuestionService.getQuestion(parseInt(questionId.value))
-    
-    if (response.success) {
+    const response = await QuestionService.getQuestion(questionId)
+    if (response.success && response.data) {
       question.value = response.data
+      startTime.value = Date.now()
     } else {
-      throw new Error(response.message || '获取题目失败')
+      alert('加载题目失败')
+      router.back()
     }
   } catch (error) {
     console.error('加载题目失败:', error)
-    alert('加载题目失败，请重试')
-    // 如果加载失败，返回上一页
+    alert('加载题目失败')
     router.back()
   }
 }
 
-// 监听路由变化
-const { questionId: routeQuestionId } = route.params
-
-// 当路由参数变化时重新加载题目
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    loadQuestion()
-  }
-}, { immediate: false })
-
+// 生命周期
 onMounted(() => {
   loadQuestion()
 })
 </script>
 
 <style scoped>
-/* 自定义样式 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

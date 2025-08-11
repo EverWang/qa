@@ -13,7 +13,7 @@ import (
 // CreateCategoryRequest 创建分类请求
 type CreateCategoryRequest struct {
 	Name     string `json:"name" binding:"required"`
-	ParentID *uint  `json:"parent_id"`
+	ParentID *uint  `json:"parentId"`
 	Level    int    `json:"level"`
 	Sort     int    `json:"sort"`
 }
@@ -22,9 +22,9 @@ type CreateCategoryRequest struct {
 type UpdateCategoryRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	ParentID    *uint  `json:"parent_id"`
+	ParentID    *uint  `json:"parentId"`
 	Level       *int   `json:"level"`
-	SortOrder   *int   `json:"sort_order"`
+	SortOrder   *int   `json:"sortOrder"`
 	Status      *int   `json:"status"`
 }
 
@@ -37,7 +37,7 @@ type CategoryTreeNode struct {
 // GetCategories 获取分类列表
 func GetCategories(c *gin.Context) {
 	tree := c.DefaultQuery("tree", "false")
-	parentID := c.Query("parent_id")
+	parentID := c.Query("parentId")
 
 	db := config.GetDB()
 
@@ -66,7 +66,7 @@ func GetCategories(c *gin.Context) {
 		}
 	}
 
-	if err := query.Preload("Parent").Order("level ASC, sort ASC").Find(&categories).Error; err != nil {
+	if err := query.Order("level ASC, sort ASC").Find(&categories).Error; err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "获取分类列表失败")
 		return
 	}
@@ -78,13 +78,20 @@ func GetCategories(c *gin.Context) {
 		categories[i].QuestionCount = int(questionCount)
 	}
 
+	// 预加载父分类信息
+	for i := range categories {
+		if categories[i].ParentID != nil {
+			db.Where("id = ?", *categories[i].ParentID).First(&categories[i].Parent)
+		}
+	}
+
 	SuccessResponse(c, categories)
 }
 
 // GetAdminCategories 获取管理员分类列表（带分页）
 func GetAdminCategories(c *gin.Context) {
 	tree := c.DefaultQuery("tree", "false")
-	parentID := c.Query("parent_id")
+	parentID := c.Query("parentId")
 	search := c.Query("search")
 	status := c.Query("status")
 

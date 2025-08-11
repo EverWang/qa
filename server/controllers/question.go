@@ -19,10 +19,10 @@ type CreateQuestionRequest struct {
 	Content       string   `json:"content" binding:"required"`
 	Type          string   `json:"type" binding:"required"`
 	Options       []string `json:"options"`
-	CorrectAnswer int      `json:"correct_answer" binding:"min=0"`
+	CorrectAnswer int      `json:"correctAnswer" binding:"min=0"`
 	Explanation   string   `json:"explanation"`
 	Difficulty    string   `json:"difficulty"`
-	CategoryID    uint     `json:"category_id" binding:"required"`
+	CategoryID    uint     `json:"categoryId" binding:"required"`
 }
 
 // UpdateQuestionRequest 更新题目请求
@@ -31,10 +31,10 @@ type UpdateQuestionRequest struct {
 	Content       string   `json:"content"`
 	Type          string   `json:"type"`
 	Options       []string `json:"options"`
-	CorrectAnswer *int     `json:"correct_answer"`
+	CorrectAnswer *int     `json:"correctAnswer"`
 	Explanation   string   `json:"explanation"`
 	Difficulty    string   `json:"difficulty"`
-	CategoryID    *uint    `json:"category_id"`
+	CategoryID    *uint    `json:"categoryId"`
 }
 
 // BatchDeleteRequest 批量删除请求
@@ -48,7 +48,7 @@ func GetQuestions(c *gin.Context) {
 	offset := (page - 1) * size
 
 	// 获取查询参数
-	categoryID := c.Query("category_id")
+	categoryID := c.Query("categoryId")
 	difficulty := c.Query("difficulty")
 	keyword := c.Query("keyword")
 
@@ -84,13 +84,13 @@ func GetAdminQuestions(c *gin.Context) {
 	offset := (page - 1) * size
 
 	// 获取查询参数
-	categoryID := c.Query("category_id")
+	categoryID := c.Query("categoryId")
 	difficulty := c.Query("difficulty")
 	questionType := c.Query("type") // 添加题目类型参数
 	keyword := c.Query("keyword")
-	creatorID := c.Query("creator_id")
-	startDate := c.Query("start_date")
-	endDate := c.Query("end_date")
+	creatorID := c.Query("creatorId")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
 
 	db := config.GetDB()
 	query := db.Model(&models.Question{})
@@ -162,7 +162,7 @@ func GetRandomQuestions(c *gin.Context) {
 	}
 
 	// 获取查询参数
-	categoryID := c.Query("category_id")
+	categoryID := c.Query("categoryId")
 	difficulty := c.Query("difficulty")
 
 	db := config.GetDB()
@@ -187,7 +187,7 @@ func GetRandomQuestions(c *gin.Context) {
 
 // GetQuestionsByCategory 根据分类获取题目
 func GetQuestionsByCategory(c *gin.Context) {
-	categoryID, err := ParseIDParam(c, "category_id")
+	categoryID, err := ParseIDParam(c, "categoryId")
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "无效的分类ID")
 		return

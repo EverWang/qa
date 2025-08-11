@@ -142,13 +142,13 @@
             </template>
           </el-table-column>
           
-          <el-table-column prop="last_login_at" label="最后登录" width="160">
+          <el-table-column prop="lastLoginAt" label="最后登录" width="160">
             <template #default="{ row }">
               <span>{{ formatDate(row.last_login_at) }}</span>
             </template>
           </el-table-column>
           
-          <el-table-column prop="created_at" label="注册时间" width="160">
+          <el-table-column prop="createdAt" label="注册时间" width="160">
             <template #default="{ row }">
               <span>{{ formatDate(row.created_at) }}</span>
             </template>

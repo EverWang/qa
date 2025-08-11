@@ -193,7 +193,7 @@
                     </div>
                   </template>
                 </el-table-column>
-                <el-table-column prop="category_id" label="分类" width="100">
+                <el-table-column prop="categoryId" label="分类" width="100">
                   <template #default="{ row }">
                     <div :class="{ 'error': row.errors?.category_id }">
                       {{ getCategoryName(row.category_id) }}

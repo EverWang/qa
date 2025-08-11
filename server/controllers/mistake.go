@@ -10,7 +10,7 @@ import (
 
 // AddToMistakeBookRequest 添加到错题本请求
 type AddToMistakeBookRequest struct {
-	QuestionID uint `json:"question_id" binding:"required"`
+	QuestionID uint `json:"questionId" binding:"required"`
 }
 
 // GetMistakeBooks 获取错题本
@@ -25,11 +25,21 @@ func GetMistakeBooks(c *gin.Context) {
 	offset := (page - 1) * size
 
 	// 获取查询参数
-	categoryID := c.Query("category_id")
+	categoryID := c.Query("categoryId")
 	difficulty := c.Query("difficulty")
+	isMastered := c.Query("isMastered")
 
 	db := config.GetDB()
 	query := db.Model(&models.MistakeBook{}).Where("user_id = ?", userID)
+
+	// 筛选掌握状态
+	if isMastered != "" {
+		if isMastered == "true" {
+			query = query.Where("is_mastered = ?", true)
+		} else if isMastered == "false" {
+			query = query.Where("is_mastered = ?", false)
+		}
+	}
 
 	// 如果指定了分类或难度，需要关联题目表
 	if categoryID != "" || difficulty != "" {
@@ -153,8 +163,74 @@ func ClearMistakeBook(c *gin.Context) {
 
 	SuccessResponse(c, gin.H{
 		"message": "清空成功",
-		"deleted_count": result.RowsAffected,
+		"deletedCount": result.RowsAffected,
 	})
+}
+
+// MarkMistakeAsMastered 标记错题为已掌握
+func MarkMistakeAsMastered(c *gin.Context) {
+	userID, exists := GetUserID(c)
+	if !exists {
+		ErrorResponse(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+
+	questionID, err := ParseIDParam(c, "questionId")
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "无效的题目ID")
+		return
+	}
+
+	db := config.GetDB()
+
+	// 查找错题本记录
+	var mistake models.MistakeBook
+	if err := db.Where("user_id = ? AND question_id = ?", userID, questionID).First(&mistake).Error; err != nil {
+		ErrorResponse(c, http.StatusNotFound, "错题本记录不存在")
+		return
+	}
+
+	// 更新掌握状态
+	mistake.IsMastered = true
+	if err := db.Save(&mistake).Error; err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "更新掌握状态失败")
+		return
+	}
+
+	SuccessResponse(c, gin.H{"message": "已标记为掌握"})
+}
+
+// ResetMistakeStatus 重置错题状态
+func ResetMistakeStatus(c *gin.Context) {
+	userID, exists := GetUserID(c)
+	if !exists {
+		ErrorResponse(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+
+	questionID, err := ParseIDParam(c, "questionId")
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "无效的题目ID")
+		return
+	}
+
+	db := config.GetDB()
+
+	// 查找错题本记录
+	var mistake models.MistakeBook
+	if err := db.Where("user_id = ? AND question_id = ?", userID, questionID).First(&mistake).Error; err != nil {
+		ErrorResponse(c, http.StatusNotFound, "错题本记录不存在")
+		return
+	}
+
+	// 重置掌握状态
+	mistake.IsMastered = false
+	if err := db.Save(&mistake).Error; err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "重置掌握状态失败")
+		return
+	}
+
+	SuccessResponse(c, gin.H{"message": "已重置掌握状态"})
 }
 
 // GetMistakeBookStatistics 获取错题本统计
@@ -171,11 +247,15 @@ func GetMistakeBookStatistics(c *gin.Context) {
 	var totalMistakes int64
 	db.Model(&models.MistakeBook{}).Where("user_id = ?", userID).Count(&totalMistakes)
 
+	// 已掌握错题数
+	var masteredMistakes int64
+	db.Model(&models.MistakeBook{}).Where("user_id = ? AND is_mastered = ?", userID, true).Count(&masteredMistakes)
+
 	// 按分类统计错题数
 	type CategoryMistakeStats struct {
-		CategoryID   uint   `json:"category_id"`
-		CategoryName string `json:"category_name"`
-		MistakeCount int64  `json:"mistake_count"`
+		CategoryID   uint   `json:"categoryId"`
+		CategoryName string `json:"categoryName"`
+		MistakeCount int64  `json:"mistakeCount"`
 	}
 
 	var categoryStats []CategoryMistakeStats
@@ -195,7 +275,7 @@ func GetMistakeBookStatistics(c *gin.Context) {
 	// 按难度统计错题数
 	type DifficultyMistakeStats struct {
 		Difficulty   string `json:"difficulty"`
-		MistakeCount int64  `json:"mistake_count"`
+		MistakeCount int64  `json:"mistakeCount"`
 	}
 
 	var difficultyStats []DifficultyMistakeStats
@@ -211,8 +291,9 @@ func GetMistakeBookStatistics(c *gin.Context) {
 	`, userID).Scan(&difficultyStats)
 
 	SuccessResponse(c, gin.H{
-		"total_mistakes": totalMistakes,
-		"category_stats": categoryStats,
-		"difficulty_stats": difficultyStats,
+		"totalMistakes": totalMistakes,
+		"masteredMistakes": masteredMistakes,
+		"categoryStats": categoryStats,
+		"difficultyStats": difficultyStats,
 	})
 }

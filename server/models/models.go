@@ -18,10 +18,10 @@ type User struct {
 	Avatar     string    `json:"avatar" gorm:"size:255"`
 	Role       string    `json:"role" gorm:"type:enum('user','admin','guest');default:'user'"`
 	Status     string    `json:"status" gorm:"type:enum('active','inactive','banned');default:'active'"`
-	IsVerified bool      `json:"is_verified" gorm:"default:false"`
-	IsGuest    bool      `json:"is_guest" gorm:"default:false"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	IsVerified bool      `json:"isVerified" gorm:"default:false"`
+	IsGuest    bool      `json:"isGuest" gorm:"default:false"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 // Category 分类模型
@@ -29,19 +29,19 @@ type Category struct {
 	ID          uint      `json:"id" gorm:"primaryKey"`
 	Name        string    `json:"name" gorm:"size:50;not null"`
 	Description string    `json:"description" gorm:"size:255"`
-	ParentID    *uint     `json:"parent_id" gorm:"index"`
+	ParentID    *uint     `json:"parentId" gorm:"index"`
 	Level       int       `json:"level" gorm:"default:1"`
-	Sort        int       `json:"sort_order" gorm:"default:0"`
+	Sort        int       `json:"sortOrder" gorm:"default:0"`
 	Status      int       `json:"status" gorm:"default:1;comment:状态 1-启用 0-禁用"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 	
 	// 关联
 	Parent   *Category  `json:"parent,omitempty" gorm:"foreignKey:ParentID"`
 	Children []Category `json:"children,omitempty" gorm:"foreignKey:ParentID"`
 	
 	// 计算字段（不存储在数据库中）
-	QuestionCount int `json:"question_count" gorm:"-"`
+	QuestionCount int `json:"questionCount" gorm:"-"`
 }
 
 // JSONArray 自定义JSON数组类型
@@ -79,13 +79,13 @@ type Question struct {
 	Content       string    `json:"content" gorm:"type:text;not null"`
 	Type          string    `json:"type" gorm:"type:enum('single','multiple','judge','fill');default:'single'"`
 	Options       JSONArray `json:"options" gorm:"type:json;not null"`
-	CorrectAnswer int       `json:"correct_answer" gorm:"not null"`
+	CorrectAnswer int       `json:"correctAnswer" gorm:"not null"`
 	Explanation   string    `json:"explanation" gorm:"type:text"`
 	Difficulty    string    `json:"difficulty" gorm:"type:enum('easy','medium','hard');default:'medium'"`
-	CategoryID    uint      `json:"category_id" gorm:"not null;index"`
-	CreatorID     *uint     `json:"creator_id" gorm:"index"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CategoryID    uint      `json:"categoryId" gorm:"not null;index"`
+	CreatorID     *uint     `json:"creatorId" gorm:"index"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 	
 	// 关联
 	Category *Category `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
@@ -95,12 +95,12 @@ type Question struct {
 // AnswerRecord 答题记录模型
 type AnswerRecord struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
-	UserID     uint      `json:"user_id" gorm:"not null;index"`
-	QuestionID uint      `json:"question_id" gorm:"not null;index"`
-	UserAnswer int       `json:"user_answer" gorm:"not null"`
-	IsCorrect  bool      `json:"is_correct" gorm:"not null"`
-	TimeSpent  int       `json:"time_spent" gorm:"default:0"`
-	CreatedAt  time.Time `json:"created_at"`
+	UserID     uint      `json:"userId" gorm:"not null;index"`
+	QuestionID uint      `json:"questionId" gorm:"not null;index"`
+	UserAnswer int       `json:"userAnswer" gorm:"not null"`
+	IsCorrect  bool      `json:"isCorrect" gorm:"not null"`
+	TimeSpent  int       `json:"timeSpent" gorm:"default:0"`
+	CreatedAt  time.Time `json:"createdAt"`
 	
 	// 关联
 	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -110,9 +110,11 @@ type AnswerRecord struct {
 // MistakeBook 错题本模型
 type MistakeBook struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
-	UserID     uint      `json:"user_id" gorm:"not null;index"`
-	QuestionID uint      `json:"question_id" gorm:"not null;index"`
-	CreatedAt  time.Time `json:"created_at"`
+	UserID     uint      `json:"userId" gorm:"not null;index"`
+	QuestionID uint      `json:"questionId" gorm:"not null;index"`
+	IsMastered bool      `json:"isMastered" gorm:"default:false;comment:是否已掌握"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 	
 	// 关联
 	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -126,8 +128,8 @@ type Admin struct {
 	PasswordHash string    `json:"-" gorm:"size:255;not null"`
 	Email        string    `json:"email" gorm:"size:100"`
 	Role         string    `json:"role" gorm:"type:enum('admin','editor');default:'admin'"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
 // OperationLog 操作日志模型
@@ -138,10 +140,10 @@ type OperationLog struct {
 	Resource     string    `json:"resource" gorm:"size:50;not null"`
 	Description  string    `json:"description" gorm:"size:255"`
 	IP           string    `json:"ip" gorm:"size:45"`
-	UserAgent    string    `json:"user_agent" gorm:"size:500"`
-	RequestData  string    `json:"request_data" gorm:"type:text"`
-	ResponseData string    `json:"response_data" gorm:"type:text"`
-	CreatedAt    time.Time `json:"created_at"`
+	UserAgent    string    `json:"userAgent" gorm:"size:500"`
+	RequestData  string    `json:"requestData" gorm:"type:text"`
+	ResponseData string    `json:"responseData" gorm:"type:text"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 // TableName 设置表名

@@ -161,9 +161,7 @@ export class AuthService {
 
   // 删除账户
   static async deleteAccount(password: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>('/api/v1/auth/account', {
-      data: { password }
-    })
+    return apiClient.post<void>('/api/v1/auth/account/delete', { password })
   }
 }
 

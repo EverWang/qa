@@ -27,4 +27,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'), // ✅ 定义 @ = src
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  }
 })

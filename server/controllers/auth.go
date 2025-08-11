@@ -34,13 +34,13 @@ type PasswordLoginRequest struct {
 type WechatLoginResponse struct {
 	Token    string      `json:"token"`
 	User     models.User `json:"user"`
-	ExpireAt int64       `json:"expire_at"`
+	ExpireAt int64       `json:"expireAt"`
 }
 
 // WechatSessionResponse 微信会话响应
 type WechatSessionResponse struct {
 	OpenID     string `json:"openid"`
-	SessionKey string `json:"session_key"`
+	SessionKey string `json:"sessionKey"`
 	UnionID    string `json:"unionid,omitempty"`
 	ErrCode    int    `json:"errcode,omitempty"`
 	ErrMsg     string `json:"errmsg,omitempty"`
@@ -61,7 +61,7 @@ type AdminLoginRequest struct {
 type GuestLoginResponse struct {
 	Token    string      `json:"token"`
 	User     models.User `json:"user"`
-	ExpireAt int64       `json:"expire_at"`
+	ExpireAt int64       `json:"expireAt"`
 }
 
 // UnifiedLogin 统一登录接口
@@ -244,7 +244,7 @@ func RefreshToken(c *gin.Context) {
 	// 返回新令牌
 	SuccessResponse(c, gin.H{
 		"token":     newToken,
-		"expire_at": time.Now().Add(24 * time.Hour).Unix(),
+		"expireAt": time.Now().Add(24 * time.Hour).Unix(),
 	})
 }
 
@@ -252,7 +252,7 @@ func RefreshToken(c *gin.Context) {
 type AdminLoginResponse struct {
 	Token    string       `json:"token"`
 	User     models.Admin `json:"user"`
-	ExpireAt int64        `json:"expire_at"`
+	ExpireAt int64        `json:"expireAt"`
 }
 
 // AdminLogin 管理员登录
@@ -299,7 +299,7 @@ func AdminLogin(c *gin.Context) {
 // GetAdminProfile 获取管理员个人信息
 func GetAdminProfile(c *gin.Context) {
 	// 从JWT中获取用户ID
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get("userId")
 	if !exists {
 		ErrorResponse(c, http.StatusUnauthorized, "未授权")
 		return
@@ -329,7 +329,7 @@ func AdminLogout(c *gin.Context) {
 
 // GuestLoginRequest 游客登录请求
 type GuestLoginRequest struct {
-	DeviceID string `json:"device_id"` // 设备唯一标识
+	DeviceID string `json:"deviceId"` // 设备唯一标识
 }
 
 // GuestLogin 游客登录

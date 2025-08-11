@@ -1,7 +1,8 @@
 # TODO:
 
-- [ ] check-supabase-integration: 检查项目是否已集成Supabase数据库 (priority: High)
-- [ ] configure-cloud-database: 配置Golang服务端连接云数据库（Supabase或其他云数据库） (priority: High)
-- [ ] update-vercel-env-vars: 更新vercel.json中的数据库环境变量配置 (priority: High)
-- [ ] modify-database-connection: 修改数据库连接代码适配云数据库环境 (priority: High)
-- [ ] test-server-deployment: 测试服务端部署和数据库连接 (priority: Medium)
+- [x] fix-auth-delete-api: 修复auth.ts中delete API调用的参数问题 (priority: High)
+- [x] fix-user-answer-type: 修复question.ts中userAnswer类型不匹配问题 (priority: High)
+- [x] fix-question-category-missing: 修复QuestionDetail.vue中question.category缺失问题 (priority: High)
+- [x] fix-deleted-count-property: 修复MistakeBook.vue中deleted_count属性名问题 (priority: High)
+- [x] fix-question-count-calculation: 修复后端分类questionCount计算逻辑问题 - 已发现数据库中有题目但API返回0 (priority: High)
+- [x] verify-frontend-display: 验证前端首页分类题目数显示是否正常 (priority: Medium)

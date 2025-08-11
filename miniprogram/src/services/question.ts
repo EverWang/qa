@@ -36,6 +36,7 @@ export interface Question {
   explanation: string
   categoryId: number
   categoryName: string
+  category?: Category
   tags: string[]
   createdAt: string
   updatedAt: string
@@ -93,15 +94,15 @@ export interface QuestionSearchParams {
   tags?: string[]
   page?: number
   pageSize?: number
-  sortBy?: 'created_at' | 'difficulty' | 'random'
+  sortBy?: 'createdAt' | 'difficulty' | 'random'
   sortOrder?: 'asc' | 'desc'
 }
 
 // 答题请求接口
 export interface SubmitAnswerRequest {
-  question_id: number
-  user_answer: number
-  time_spent: number
+  questionId: number
+  userAnswer: string | string[]
+  timeSpent: number
 }
 
 // 题目服务
@@ -114,14 +115,14 @@ export class QuestionService {
       // 转换前端参数名为后端期望的格式
       const backendParams: any = {}
       if (params) {
-        if (params.categoryId !== undefined) backendParams.category_id = params.categoryId
+        if (params.categoryId !== undefined) backendParams.categoryId = params.categoryId
         if (params.difficulty !== undefined) backendParams.difficulty = params.difficulty
         if (params.keyword !== undefined) backendParams.keyword = params.keyword
         if (params.type !== undefined) backendParams.type = params.type
         if (params.page !== undefined) backendParams.page = params.page
         if (params.pageSize !== undefined) backendParams.size = params.pageSize
-        if (params.sortBy !== undefined) backendParams.sort_by = params.sortBy
-        if (params.sortOrder !== undefined) backendParams.sort_order = params.sortOrder
+        if (params.sortBy !== undefined) backendParams.sortBy = params.sortBy
+        if (params.sortOrder !== undefined) backendParams.sortOrder = params.sortOrder
       }
       console.log('QuestionService.getQuestions 转换后的参数:', backendParams)
       
@@ -141,15 +142,15 @@ export class QuestionService {
             options: Array.isArray(item.options) ? item.options.map((opt: any, index: number) => ({
               id: String.fromCharCode(65 + index), // A, B, C, D
               content: opt,
-              isCorrect: item.correct_answer === index + 1
+              isCorrect: item.correctAnswer === index + 1
             })) : [],
-            correctAnswer: item.correct_answer,
+            correctAnswer: item.correctAnswer,
             explanation: item.explanation || '',
-            categoryId: item.category_id,
+            categoryId: item.categoryId,
             categoryName: item.category?.name || '未分类',
             tags: item.tags || [],
-            createdAt: item.created_at,
-            updatedAt: item.updated_at
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
           }
         })
         console.log('转换后的题目数据:', response.data.items)
@@ -181,13 +182,13 @@ export class QuestionService {
           type: item.type,
           difficulty: item.difficulty,
           options: Array.isArray(item.options) ? item.options : [],
-          correctAnswer: item.correct_answer,
+          correctAnswer: item.correctAnswer,
           explanation: item.explanation || '',
-          categoryId: item.category_id,
+          categoryId: item.categoryId,
           categoryName: item.category?.name || '未分类',
           tags: item.tags || [],
-          createdAt: item.created_at,
-          updatedAt: item.updated_at,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
           category: item.category
         }
         console.log('转换后的题目详情数据:', transformedData)
@@ -265,13 +266,12 @@ export class QuestionService {
             id: item.id,
             name: item.name,
             description: item.description || '',
-            parentId: item.parent_id,
-            parent_id: item.parent_id, // 保留原始字段名
+            parentId: item.parentId,
             level: item.level,
             status: item.status, // 添加status字段
-            questionCount: item.question_count || 0,
-            createdAt: item.created_at,
-            updatedAt: item.updated_at
+            questionCount: item.questionCount || 0,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
           }
         })
         console.log('转换后的分类数据:', transformedData)
@@ -324,7 +324,7 @@ export class QuestionService {
 
   // 添加到错题本
   static async addToMistakeBook(questionId: number): Promise<ApiResponse<MistakeBook>> {
-    return apiClient.post<MistakeBook>('/api/v1/mistakes', { question_id: questionId })
+    return apiClient.post<MistakeBook>('/api/v1/mistakes', { questionId: questionId })
   }
 
   // 从错题本移除
@@ -356,7 +356,7 @@ export class QuestionService {
   // 清空错题本
   static async clearMistakeBook(): Promise<ApiResponse<{
     message: string
-    deleted_count: number
+    deletedCount: number
   }>> {
     return apiClient.delete('/api/v1/mistakes/clear')
   }

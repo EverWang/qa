@@ -84,42 +84,87 @@ class ApiClient {
       }
       
       const errorData = await response.json().catch(() => ({ message: '网络错误' }))
-      throw new Error(errorData.message || `HTTP ${response.status}`)
+      
+      // 返回错误响应而不是抛出异常，让调用方处理
+      return {
+        code: response.status,
+        message: errorData.message || `HTTP ${response.status}`,
+        data: null as T,
+        success: false
+      }
     }
 
     const data = await response.json()
     
     // 处理后端返回的标准格式 {code, message, data}
     if (data && typeof data === 'object' && 'code' in data && 'message' in data && 'data' in data) {
+      // 转换字段名
+      const transformedData = this.transformKeys(data.data)
       return {
         code: data.code,
         message: data.message,
-        data: data.data,
+        data: transformedData,
         success: data.code === 200
       }
     }
     
     // 如果后端返回的数据已经是ApiResponse格式，直接返回
     if (data && typeof data === 'object' && 'success' in data && 'code' in data && 'message' in data) {
-      return data
+      // 转换字段名
+      const transformedData = this.transformKeys(data.data)
+      return {
+        ...data,
+        data: transformedData
+      }
     }
     
     // 否则包装成ApiResponse格式
+    const transformedData = this.transformKeys(data)
     return {
       code: response.status,
       message: 'success',
-      data: data,
+      data: transformedData,
       success: true
     }
+  }
+
+  // 字段名转换：下划线转驼峰
+  private toCamelCase(str: string): string {
+    return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+  }
+
+  // 转换对象字段名
+  private transformKeys(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transformKeys(item))
+    }
+    
+    if (typeof obj === 'object') {
+      const transformed: any = {}
+      for (const [key, value] of Object.entries(obj)) {
+        const camelKey = this.toCamelCase(key)
+        transformed[camelKey] = this.transformKeys(value)
+      }
+      return transformed
+    }
+    
+    return obj
   }
 
   // 转换分页响应格式
   private transformPaginatedResponse<T>(backendResponse: ApiResponse<PaginatedResponse<T>>): ApiResponse<FrontendPaginatedResponse<T>> {
     const { data, total, page, size } = backendResponse.data
+    // 转换数据字段名
+    const transformedData = this.transformKeys(data)
+    
     return {
       ...backendResponse,
       data: {
-        items: data,
+        items: transformedData,
         total,
         page,
         pageSize: size,
