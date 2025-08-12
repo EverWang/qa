@@ -220,7 +220,8 @@ const submitAnswer = async () => {
   
   try {
     const timeSpent = Math.floor((Date.now() - startTime.value) / 1000)
-    const userAnswer = String.fromCharCode(65 + selectedOption.value)
+    // 后端期望的是数字索引，不是字符串
+    const userAnswer = selectedOption.value
     
     const response = await QuestionService.submitAnswer({
       questionId: question.value.id,

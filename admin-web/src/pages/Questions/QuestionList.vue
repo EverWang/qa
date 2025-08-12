@@ -258,7 +258,7 @@ const fetchQuestions = async () => {
       size: pagination.size,
       keyword: searchForm.content || undefined,
       type: searchForm.type || undefined, // 添加题目类型筛选参数
-      category_id: searchForm.categoryId || undefined,
+      categoryId: searchForm.categoryId || undefined,
       difficulty: searchForm.difficulty || undefined
     }
     
@@ -281,10 +281,10 @@ const fetchQuestions = async () => {
         options: ['A. 前端框架', 'B. 后端框架', 'C. 数据库', 'D. 编程语言'],
         answer: 'A',
         explanation: 'Vue.js 是一个用于构建用户界面的渐进式前端框架。',
-        categoryId: 1,
+        category_id: 1,
         category: { id: 1, name: '前端开发' },
-        createdAt: '2024-01-15 10:30:00',
-        updatedAt: '2024-01-15 10:30:00'
+        created_at: '2024-01-15 10:30:00',
+        updated_at: '2024-01-15 10:30:00'
       },
       {
         id: 2,
@@ -294,10 +294,10 @@ const fetchQuestions = async () => {
         options: ['A. 函数', 'B. 对象', 'C. 变量', 'D. 函数和其词法环境的组合'],
         answer: 'D',
         explanation: '闭包是函数和声明该函数的词法环境的组合。',
-        categoryId: 1,
+        category_id: 1,
         category: { id: 1, name: '前端开发' },
-        createdAt: '2024-01-15 11:00:00',
-        updatedAt: '2024-01-15 11:00:00'
+        created_at: '2024-01-15 11:00:00',
+        updated_at: '2024-01-15 11:00:00'
       }
     ]
     total.value = 2

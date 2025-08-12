@@ -12,30 +12,30 @@ import (
 
 // SubmitAnswerRequest 提交答案请求
 type SubmitAnswerRequest struct {
-	QuestionID uint `json:"question_id" binding:"required"`
-	UserAnswer int  `json:"user_answer" binding:"required,min=0"`
-	TimeSpent  int  `json:"time_spent" binding:"min=0"`
+	QuestionID uint `json:"questionId" binding:"required"`
+	UserAnswer int  `json:"userAnswer" binding:"min=0"`
+	TimeSpent  int  `json:"timeSpent" binding:"min=0"`
 }
 
 // AnswerStatistics 答题统计
 type AnswerStatistics struct {
-	TotalAnswered   int64   `json:"total_answered"`
-	CorrectAnswered int64   `json:"correct_answered"`
-	AccuracyRate    float64 `json:"accuracy_rate"`
-	TotalTimeSpent  int64   `json:"total_time_spent"`
-	AverageTime     float64 `json:"average_time"`
-	TodayAnswered   int64   `json:"today_answered"`
-	WeekAnswered    int64   `json:"week_answered"`
-	MonthAnswered   int64   `json:"month_answered"`
+	TotalAnswered   int64   `json:"totalAnswered"`
+	CorrectAnswered int64   `json:"correctAnswered"`
+	AccuracyRate    float64 `json:"accuracyRate"`
+	TotalTimeSpent  int64   `json:"totalTimeSpent"`
+	AverageTime     float64 `json:"averageTime"`
+	TodayAnswered   int64   `json:"todayAnswered"`
+	WeekAnswered    int64   `json:"weekAnswered"`
+	MonthAnswered   int64   `json:"monthAnswered"`
 }
 
 // CategoryStatistics 分类统计
 type CategoryStatistics struct {
-	CategoryID      uint    `json:"category_id"`
-	CategoryName    string  `json:"category_name"`
-	TotalAnswered   int64   `json:"total_answered"`
-	CorrectAnswered int64   `json:"correct_answered"`
-	AccuracyRate    float64 `json:"accuracy_rate"`
+	CategoryID      uint    `json:"categoryId"`
+	CategoryName    string  `json:"categoryName"`
+	TotalAnswered   int64   `json:"totalAnswered"`
+	CorrectAnswered int64   `json:"correctAnswered"`
+	AccuracyRate    float64 `json:"accuracyRate"`
 }
 
 // SubmitAnswer 提交答案
@@ -93,8 +93,8 @@ func SubmitAnswer(c *gin.Context) {
 		}
 		
 		SuccessResponse(c, gin.H{
-			"is_correct": isCorrect,
-			"correct_answer": question.CorrectAnswer,
+			"isCorrect": isCorrect,
+			"correctAnswer": question.CorrectAnswer,
 			"explanation": question.Explanation,
 			"updated": true,
 		})
@@ -121,8 +121,8 @@ func SubmitAnswer(c *gin.Context) {
 	}
 
 	SuccessResponse(c, gin.H{
-		"is_correct": isCorrect,
-		"correct_answer": question.CorrectAnswer,
+		"isCorrect": isCorrect,
+		"correctAnswer": question.CorrectAnswer,
 		"explanation": question.Explanation,
 		"updated": false,
 	})

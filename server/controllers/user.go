@@ -27,7 +27,7 @@ type AdminUpdateUserRequest struct {
 	Email      string `json:"email"`
 	Role       string `json:"role"`
 	Status     string `json:"status"`
-	IsVerified bool   `json:"is_verified"`
+	IsVerified bool   `json:"isVerified"`
 	Password   string `json:"password,omitempty"`
 }
 
@@ -38,7 +38,7 @@ type AdminCreateUserRequest struct {
 	Password   string `json:"password"`
 	Role       string `json:"role"`
 	Status     string `json:"status"`
-	IsVerified bool   `json:"is_verified"`
+	IsVerified bool   `json:"isVerified"`
 }
 
 // HashPassword 密码加密函数

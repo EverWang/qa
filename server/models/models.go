@@ -112,9 +112,8 @@ type MistakeBook struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
 	UserID     uint      `json:"userId" gorm:"not null;index"`
 	QuestionID uint      `json:"questionId" gorm:"not null;index"`
-	IsMastered bool      `json:"isMastered" gorm:"default:false;comment:是否已掌握"`
+	IsMastered bool      `json:"isMastered" gorm:"default:false"`
 	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
 	
 	// 关联
 	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`

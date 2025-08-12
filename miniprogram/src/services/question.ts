@@ -66,7 +66,7 @@ export interface AnswerRecord {
   id: number
   questionId: number
   userId: number
-  userAnswer: string | string[]
+  userAnswer: number
   isCorrect: boolean
   timeSpent: number // 秒
   answeredAt: string
@@ -101,7 +101,7 @@ export interface QuestionSearchParams {
 // 答题请求接口
 export interface SubmitAnswerRequest {
   questionId: number
-  userAnswer: string | string[]
+  userAnswer: number // 后端期望数字索引
   timeSpent: number
 }
 
@@ -142,11 +142,11 @@ export class QuestionService {
             options: Array.isArray(item.options) ? item.options.map((opt: any, index: number) => ({
               id: String.fromCharCode(65 + index), // A, B, C, D
               content: opt,
-              isCorrect: item.correctAnswer === index + 1
+              isCorrect: item.correct_answer === index
             })) : [],
-            correctAnswer: item.correctAnswer,
+            correctAnswer: item.correct_answer,
             explanation: item.explanation || '',
-            categoryId: item.categoryId,
+            categoryId: item.category_id,
             categoryName: item.category?.name || '未分类',
             tags: item.tags || [],
             createdAt: item.createdAt,
@@ -182,9 +182,9 @@ export class QuestionService {
           type: item.type,
           difficulty: item.difficulty,
           options: Array.isArray(item.options) ? item.options : [],
-          correctAnswer: item.correctAnswer,
+          correctAnswer: item.correct_answer,
           explanation: item.explanation || '',
-          categoryId: item.categoryId,
+          categoryId: item.category_id,
           categoryName: item.category?.name || '未分类',
           tags: item.tags || [],
           createdAt: item.createdAt,

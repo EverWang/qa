@@ -10,12 +10,12 @@ import (
 
 // BasicSettingsRequest 基础设置请求
 type BasicSettingsRequest struct {
-	SystemName        string `json:"system_name"`
-	SystemDescription string `json:"system_description"`
-	SystemVersion     string `json:"system_version"`
-	ContactEmail      string `json:"contact_email"`
-	SystemStatus      string `json:"system_status"`
-	MaintenanceNotice string `json:"maintenance_notice"`
+	SystemName        string `json:"systemName"`
+	SystemDescription string `json:"systemDescription"`
+	SystemVersion     string `json:"systemVersion"`
+	ContactEmail      string `json:"contactEmail"`
+	SystemStatus      string `json:"systemStatus"`
+	MaintenanceNotice string `json:"maintenanceNotice"`
 }
 
 // QuizSettingsRequest 答题设置请求
@@ -42,8 +42,8 @@ type SystemStatistics struct {
 // UserStatItem 用户统计项
 type UserStatItem struct {
 	Date        string `json:"date"`
-	NewUsers    int64  `json:"new_users"`
-	ActiveUsers int64  `json:"active_users"`
+	NewUsers    int64  `json:"newUsers"`
+	ActiveUsers int64  `json:"activeUsers"`
 }
 
 // AnswerStatItem 答题统计项

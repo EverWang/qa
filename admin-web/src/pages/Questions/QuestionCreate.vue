@@ -413,10 +413,10 @@ const handleSave = async () => {
       options: (form.type === 'single' || form.type === 'multiple') 
         ? form.options.filter(opt => opt.trim()) 
         : ['true', 'false'], // 判断题和填空题也需要提供options
-      correct_answer: getCorrectAnswerIndex(), // 后端期望correct_answer字段
+      correctAnswer: getCorrectAnswerIndex(), // 后端期望correctAnswer字段（驼峰命名）
       explanation: form.explanation.trim() || '',
       difficulty: form.difficulty,
-      category_id: parseInt(form.categoryId.toString())
+      categoryId: parseInt(form.categoryId.toString()) // 后端期望categoryId字段（驼峰命名）
     }
     
     await api.post('/api/v1/admin/questions', submitData)

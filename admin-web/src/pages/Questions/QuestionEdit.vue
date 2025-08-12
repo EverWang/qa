@@ -477,9 +477,9 @@ const handleSave = async () => {
       type: form.type,
       difficulty: form.difficulty,
       options: (form.type === 'single' || form.type === 'multiple') ? form.options : [],
-      correct_answer: correctAnswer,
+      correctAnswer: correctAnswer, // 使用驼峰命名
       explanation: form.type === 'fill' ? (form.answer as string[])[0] : form.explanation,
-      category_id: parseInt(form.category_id.toString())
+      categoryId: parseInt(form.category_id.toString()) // 使用驼峰命名
     }
     
     await api.put(`/api/v1/admin/questions/${form.id}`, questionData)
@@ -519,19 +519,19 @@ const fetchQuestion = async (id: string) => {
     form.difficulty = question.difficulty
     form.options = question.options || []
     form.explanation = question.explanation || ''
-    form.category_id = question.category_id.toString()
+    form.category_id = (question.categoryId || question.category_id).toString()
     
     console.log('设置后的form.type:', form.type) // 调试日志
     console.log('设置后的form.options:', form.options) // 调试日志
     
     // 处理答案字段的映射
     if (form.type === 'single') {
-      // 单选题：后端correct_answer是索引，前端需要转换为选项标签
-      const answerIndex = question.correct_answer || 0
+      // 单选题：后端correctAnswer是索引，前端需要转换为选项标签
+      const answerIndex = question.correctAnswer || question.correct_answer || 0
       form.answer = getOptionLabel(answerIndex)
     } else if (form.type === 'multiple') {
-      // 多选题：后端correct_answer是位掩码，前端需要转换为选项标签数组
-      const answerMask = question.correct_answer || 0
+      // 多选题：后端correctAnswer是位掩码，前端需要转换为选项标签数组
+      const answerMask = question.correctAnswer || question.correct_answer || 0
       const answerLabels = []
       for (let i = 0; i < form.options.length; i++) {
         if (answerMask & (1 << i)) {
@@ -540,8 +540,8 @@ const fetchQuestion = async (id: string) => {
       }
       form.answer = answerLabels
     } else if (form.type === 'judge') {
-      // 判断题：后端correct_answer是索引（0=正确，1=错误）
-      const answerIndex = question.correct_answer || 0
+      // 判断题：后端correctAnswer是索引（0=正确，1=错误）
+      const answerIndex = question.correctAnswer || question.correct_answer || 0
       form.answer = answerIndex === 0 ? 'true' : 'false'
     } else if (form.type === 'fill') {
       // 填空题：使用explanation字段存储答案
