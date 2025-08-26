@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Response 统一响应结构
@@ -55,15 +56,15 @@ func PageSuccessResponse(c *gin.Context, data interface{}, total int64, page, si
 }
 
 // GetUserID 从上下文获取用户ID
-func GetUserID(c *gin.Context) (uint, bool) {
+func GetUserID(c *gin.Context) (uuid.UUID, bool) {
 	userID, exists := c.Get("userId")
 	if !exists {
-		return 0, false
+		return uuid.Nil, false
 	}
-	if id, ok := userID.(uint); ok {
+	if id, ok := userID.(uuid.UUID); ok {
 		return id, true
 	}
-	return 0, false
+	return uuid.Nil, false
 }
 
 // GetOpenID 从上下文获取OpenID
@@ -109,13 +110,13 @@ func ParsePageParams(c *gin.Context) (page, size int) {
 }
 
 // ParseIDParam 解析ID参数
-func ParseIDParam(c *gin.Context, paramName string) (uint, error) {
+func ParseIDParam(c *gin.Context, paramName string) (uuid.UUID, error) {
 	idStr := c.Param(paramName)
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
-	return uint(id), nil
+	return id, nil
 }
 
 // parseJSONValue 解析JSON字符串到结构体

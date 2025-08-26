@@ -10,36 +10,37 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // CreateQuestionRequest 创建题目请求
 type CreateQuestionRequest struct {
-	Title         string   `json:"title" binding:"required"`
-	Content       string   `json:"content" binding:"required"`
-	Type          string   `json:"type" binding:"required"`
-	Options       []string `json:"options"`
-	CorrectAnswer int      `json:"correctAnswer" binding:"min=0"`
-	Explanation   string   `json:"explanation"`
-	Difficulty    string   `json:"difficulty"`
-	CategoryID    uint     `json:"categoryId" binding:"required"`
+	Title         string    `json:"title" binding:"required"`
+	Content       string    `json:"content" binding:"required"`
+	Type          string    `json:"type" binding:"required"`
+	Options       []string  `json:"options"`
+	CorrectAnswer int       `json:"correctAnswer" binding:"min=0"`
+	Explanation   string    `json:"explanation"`
+	Difficulty    string    `json:"difficulty"`
+	CategoryID    uuid.UUID `json:"categoryId" binding:"required"`
 }
 
 // UpdateQuestionRequest 更新题目请求
 type UpdateQuestionRequest struct {
-	Title         string   `json:"title"`
-	Content       string   `json:"content"`
-	Type          string   `json:"type"`
-	Options       []string `json:"options"`
-	CorrectAnswer *int     `json:"correctAnswer"`
-	Explanation   string   `json:"explanation"`
-	Difficulty    string   `json:"difficulty"`
-	CategoryID    *uint    `json:"categoryId"`
+	Title         string     `json:"title"`
+	Content       string     `json:"content"`
+	Type          string     `json:"type"`
+	Options       []string   `json:"options"`
+	CorrectAnswer *int       `json:"correctAnswer"`
+	Explanation   string     `json:"explanation"`
+	Difficulty    string     `json:"difficulty"`
+	CategoryID    *uuid.UUID `json:"categoryId"`
 }
 
 // BatchDeleteRequest 批量删除请求
 type BatchDeleteRequest struct {
-	IDs []uint `json:"ids"`
+	IDs []uuid.UUID `json:"ids"`
 }
 
 // GetQuestions 获取题目列表
@@ -431,13 +432,13 @@ func BatchDeleteQuestions(c *gin.Context) {
 
 // ImportQuestionItem 导入题目项
 type ImportQuestionItem struct {
-	Content    string   `json:"content" binding:"required"`
-	Type       string   `json:"type" binding:"required"`
-	Difficulty string   `json:"difficulty" binding:"required"`
-	CategoryID uint     `json:"category_id" binding:"required"`
-	Options    []string `json:"options"`
-	Answer     string   `json:"answer" binding:"required"`
-	Explanation string  `json:"explanation"`
+	Content    string    `json:"content" binding:"required"`
+	Type       string    `json:"type" binding:"required"`
+	Difficulty string    `json:"difficulty" binding:"required"`
+	CategoryID uuid.UUID `json:"category_id" binding:"required"`
+	Options    []string  `json:"options"`
+	Answer     string    `json:"answer" binding:"required"`
+	Explanation string   `json:"explanation"`
 }
 
 // ImportQuestionsRequest 批量导入题目请求

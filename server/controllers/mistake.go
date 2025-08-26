@@ -6,11 +6,12 @@ import (
 	"qaminiprogram/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // AddToMistakeBookRequest 添加到错题本请求
 type AddToMistakeBookRequest struct {
-	QuestionID uint `json:"questionId" binding:"required"`
+	QuestionID uuid.UUID `json:"questionId" binding:"required"`
 }
 
 // GetMistakeBooks 获取错题本
@@ -253,9 +254,9 @@ func GetMistakeBookStatistics(c *gin.Context) {
 
 	// 按分类统计错题数
 	type CategoryMistakeStats struct {
-		CategoryID   uint   `json:"categoryId"`
-		CategoryName string `json:"categoryName"`
-		MistakeCount int64  `json:"mistakeCount"`
+		CategoryID   uuid.UUID `json:"categoryId"`
+		CategoryName string    `json:"categoryName"`
+		MistakeCount int64     `json:"mistakeCount"`
 	}
 
 	var categoryStats []CategoryMistakeStats

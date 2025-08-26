@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/auth/LoginPage.vue'
-import QuestionDetail from '@/pages/question/questiondetail.vue'
+import QuestionDetail from '@/pages/question/QuestionDetail.vue'
 import UserCenter from '@/pages/user/UserCenter.vue'
 import UserRecords from '@/pages/user/UserRecords.vue'
 import MistakeBook from '@/pages/user/MistakeBook.vue'

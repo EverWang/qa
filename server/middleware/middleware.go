@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // CORS 跨域中间件
@@ -133,14 +134,14 @@ func AdminAuth() gin.HandlerFunc {
 
 // JWTClaims JWT声明结构
 type JWTClaims struct {
-	UserID uint   `json:"userId"`
-	OpenID string `json:"openid"`
-	Role   string `json:"role"`
+	UserID uuid.UUID `json:"userId"`
+	OpenID string    `json:"openid"`
+	Role   string    `json:"role"`
 	jwt.RegisteredClaims
 }
 
 // GenerateJWT 生成JWT令牌
-func GenerateJWT(userID uint, openID, role string) (string, error) {
+func GenerateJWT(userID uuid.UUID, openID, role string) (string, error) {
 	expireTime := time.Now().Add(24 * time.Hour)
 	claims := &JWTClaims{
 		UserID: userID,

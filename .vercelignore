@@ -3,16 +3,16 @@ node_modules/
 */node_modules/
 **/node_modules/
 
-# Build outputs
+# Build outputs (除了admin-web/dist)
 build/
 dist/
 out/
 */build/
-*/dist/
 */out/
 **/build/
-**/dist/
 **/out/
+miniprogram/dist/
+server/dist/
 
 # Version control
 .git/
@@ -31,8 +31,9 @@ logs/
 */logs/
 **/logs/
 
-# Backend server (Golang) - 完全排除
+# 完全排除后端服务器和小程序
 server/
+miniprogram/
 *.exe
 *.bin
 *.go
@@ -51,6 +52,10 @@ go.work.sum
 *.7z
 *.dmg
 *.iso
+DEPLOYMENT.md
+DOCKER_DEPLOYMENT.md
+VERCEL_DEPLOY_GUIDE.md
+build-scripts.md
 
 # Environment files
 .env*
@@ -71,15 +76,16 @@ temp/
 Thumbs.db
 *.lnk
 
-# Package manager files
+# Package manager files (根目录)
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+package.json
 
 # TypeScript
 *.tsbuildinfo
 
-# Source maps (大文件)
+# Source maps
 *.map
 *.js.map
 *.css.map
@@ -103,11 +109,19 @@ storybook-static/
 # Vite
 vite.config.*.timestamp-*
 
-# 小程序相关大文件
-miniprogram/unpackage/
-miniprogram/platforms/
+# Docker相关
+Dockerfile
+docker-compose.yml
+nginx/
 
-# 管理端相关大文件
-admin-web/node_modules/
-admin-web/dist/
-admin-web/build/
+# 部署脚本
+deploy.bat
+deploy.sh
+
+# 测试文件
+test_frontend.js
+*.test.js
+*.spec.js
+
+# Supabase migrations (不需要部署)
+supabase/

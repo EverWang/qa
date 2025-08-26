@@ -7,7 +7,7 @@ import (
 	"qaminiprogram/models"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -16,19 +16,37 @@ var DB *gorm.DB
 
 // InitDatabase 初始化数据库连接
 func InitDatabase() {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
+	// 从环境变量获取Supabase数据库连接信息
+	host := os.Getenv("SUPABASE_DB_HOST")
+	port := os.Getenv("SUPABASE_DB_PORT")
+	user := os.Getenv("SUPABASE_DB_USER")
+	password := os.Getenv("SUPABASE_DB_PASSWORD")
+	dbname := os.Getenv("SUPABASE_DB_NAME")
 
-	// 构建DSN
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		user, password, host, port, dbname)
+	// 如果环境变量未设置，使用默认的Supabase连接信息
+	if host == "" {
+		host = "db.lvafyknbbxmcatbmzeij.supabase.co"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if user == "" {
+		user = "postgres"
+	}
+	if password == "" {
+		password = os.Getenv("SUPABASE_DB_PASSWORD") // 需要设置实际密码
+	}
+	if dbname == "" {
+		dbname = "postgres"
+	}
+
+	// 构建PostgreSQL DSN
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require TimeZone=Asia/Shanghai",
+		host, port, user, password, dbname)
 
 	// 连接数据库
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 
@@ -51,21 +69,25 @@ func GetDB() *gorm.DB {
 }
 
 // migrateDatabase 自动迁移数据库表结构
+// 注意：Supabase数据库表结构已通过SQL迁移文件创建，这里只做检查
 func migrateDatabase() {
-	err := DB.AutoMigrate(
-		&models.User{},
-		&models.Category{},
-		&models.Question{},
-		&models.AnswerRecord{},
-		&models.MistakeBook{},
-		&models.Admin{},
-		&models.SystemSetting{},
-		&models.OperationLog{},
-	)
-	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+	// 检查必要的表是否存在
+	if !DB.Migrator().HasTable(&models.Category{}) {
+		log.Println("Warning: categories table not found, please run Supabase migrations")
 	}
-	log.Println("Database migration completed")
+	if !DB.Migrator().HasTable(&models.Question{}) {
+		log.Println("Warning: questions table not found, please run Supabase migrations")
+	}
+	if !DB.Migrator().HasTable(&models.AnswerRecord{}) {
+		log.Println("Warning: answer_records table not found, please run Supabase migrations")
+	}
+	if !DB.Migrator().HasTable(&models.MistakeBook{}) {
+		log.Println("Warning: mistake_books table not found, please run Supabase migrations")
+	}
+	if !DB.Migrator().HasTable(&models.Admin{}) {
+		log.Println("Warning: admins table not found, please run Supabase migrations")
+	}
+	log.Println("Database table check completed")
 }
 
 // initializeDefaultData 初始化默认数据

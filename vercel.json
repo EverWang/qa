@@ -1,31 +1,8 @@
 {
   "version": 2,
-  "name": "shuashuati-admin",
-  "builds": [
-    {
-      "src": "admin-web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "admin-web/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/admin-web/dist/index.html"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "functions": {
-    "admin-web/dist/**": {
-      "maxDuration": 30
-    }
-  },
+  "buildCommand": "cd miniprogram && npm install && npm run build",
+  "outputDirectory": "miniprogram/dist",
+  "installCommand": "cd miniprogram && npm install",
+  "framework": "vite",
   "regions": ["hkg1"]
 }

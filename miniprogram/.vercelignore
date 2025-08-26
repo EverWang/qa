@@ -1,0 +1,86 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Source files (only deploy built files)
+src/
+
+# Development files
+*.ts
+*.vue
+!dist/**
+
+# Configuration files
+tsconfig.json
+vite.config.ts
+tailwind.config.js
+postcss.config.js
+
+# Build outputs
+build/
+out/
+
+# Version control
+.git/
+.gitignore
+
+# IDE and tools
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env*
+
+# Cache and temporary
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+cache/
+tmp/
+temp/
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
+
+# Source maps
+*.map
+*.js.map
+*.css.map
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Webpack
+.webpack/
+
+# Vite
+vite.config.*.timestamp-*
+
+# Docker
+Dockerfile
+nginx.conf
