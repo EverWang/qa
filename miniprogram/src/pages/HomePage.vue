@@ -285,7 +285,8 @@ const goToCategory = (categoryId?: number) => {
   }
 }
 
-const goToQuestion = (questionId: number) => {
+const goToQuestion = (questionId: number | string) => {
+  console.log('跳转到题目详情:', questionId)
   router.push(`/question/${questionId}`)
 }
 
@@ -349,20 +350,24 @@ const loadRecommendedQuestions = async () => {
     
     console.log('推荐题目API响应:', response)
     
-    if (response.success && response.data) {
-      recommendedQuestions.value = response.data.items.map(q => ({
-        id: q.id,
-        title: q.title,
-        content: q.content,
-        difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
-        category: {
-          id: q.categoryId,
-          name: q.categoryName || '未分类'
+    if (response.success && response.data && response.data.items) {
+      recommendedQuestions.value = response.data.items.map(q => {
+        console.log('处理推荐题目:', q.id, q.title, q.content)
+        return {
+          id: q.id, // 保持原始ID格式（UUID字符串）
+          title: q.title || q.content, // 如果没有title，使用content
+          content: q.content,
+          difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
+          category: {
+            id: q.categoryId,
+            name: q.categoryName || '未分类'
+          }
         }
-      }))
+      })
       console.log('推荐题目加载成功，数量:', recommendedQuestions.value.length)
     } else {
       console.log('推荐题目API响应失败:', response)
+      recommendedQuestions.value = []
     }
   } catch (error) {
     console.error('加载推荐题目失败:', error)
@@ -381,7 +386,7 @@ const loadCategories = async () => {
     
     console.log('分类API响应:', response)
     
-    if (response.success && response.data) {
+    if (response.success && response.data && Array.isArray(response.data)) {
       // 为分类添加图标和颜色
       const getIconAndColor = (categoryName: string) => {
         const name = categoryName.toLowerCase()
@@ -409,9 +414,10 @@ const loadCategories = async () => {
       
       categories.value = topLevelCategories.map((cat) => {
         const { icon, color } = getIconAndColor(cat.name)
-        console.log('处理分类:', cat.name, '图标:', icon.name, '颜色:', color)
+        console.log('处理分类:', cat.name, '题目数量:', cat.questionCount, '图标:', icon.name, '颜色:', color)
         return {
           ...cat,
+          questionCount: cat.questionCount || 0, // 确保questionCount存在
           color,
           icon
         }
@@ -421,6 +427,7 @@ const loadCategories = async () => {
       console.log('分类详情:', categories.value)
     } else {
       console.log('分类API响应失败:', response)
+      categories.value = []
     }
   } catch (error) {
       console.error('加载分类失败:', error)

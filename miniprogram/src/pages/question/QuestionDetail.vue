@@ -263,9 +263,22 @@ const getCorrectAnswerText = () => {
   return question.value.correctAnswer?.toString() || ''
 }
 
-const nextQuestion = () => {
-  // 随机获取下一题
-  router.push('/questions/random')
+const nextQuestion = async () => {
+  try {
+    // 获取随机题目
+    const response = await QuestionService.getRandomQuestions(1)
+    if (response.success && response.data.length > 0) {
+      const nextQuestionId = response.data[0].id
+      router.push(`/question/${nextQuestionId}`)
+    } else {
+      // 如果没有随机题目，回到首页
+      router.push('/')
+    }
+  } catch (error) {
+    console.error('获取下一题失败:', error)
+    // 出错时回到首页
+    router.push('/')
+  }
 }
 
 const addToMistakes = async () => {
@@ -307,19 +320,24 @@ const goBack = () => {
 }
 
 const loadQuestion = async () => {
-  const questionId = Number(route.params.id)
+  const questionId = route.params.id as string
   if (!questionId) {
     alert('题目ID无效')
     router.back()
     return
   }
   
+  console.log('加载题目详情，ID:', questionId)
+  
   try {
     const response = await QuestionService.getQuestion(questionId)
+    console.log('题目详情API响应:', response)
     if (response.success && response.data) {
       question.value = response.data
       startTime.value = Date.now()
+      console.log('题目加载成功:', question.value)
     } else {
+      console.error('加载题目失败:', response)
       alert('加载题目失败')
       router.back()
     }

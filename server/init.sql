@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS questions (
     content TEXT NOT NULL COMMENT '题目内容',
     options JSON NOT NULL COMMENT '选项数组',
     correct_answer INT NOT NULL COMMENT '正确答案索引',
-    explanation TEXT DEFAULT '' COMMENT '答案解析',
+    explanation TEXT COMMENT '答案解析',
     difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium' COMMENT '难度等级',
     category_id BIGINT NOT NULL COMMENT '分类ID',
     total_answered INT DEFAULT 0 COMMENT '总答题次数',

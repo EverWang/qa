@@ -7,54 +7,58 @@ import (
 	"qaminiprogram/models"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/postgres"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
-// InitDatabase 初始化数据库连接
+/**
+ * InitDatabase 初始化MySQL数据库连接
+ * 只支持MySQL数据库，移除了PostgreSQL和Supabase支持
+ */
 func InitDatabase() {
-	// 从环境变量获取Supabase数据库连接信息
-	host := os.Getenv("SUPABASE_DB_HOST")
-	port := os.Getenv("SUPABASE_DB_PORT")
-	user := os.Getenv("SUPABASE_DB_USER")
-	password := os.Getenv("SUPABASE_DB_PASSWORD")
-	dbname := os.Getenv("SUPABASE_DB_NAME")
+	// 获取MySQL数据库连接参数
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+	charset := os.Getenv("DB_CHARSET")
 
-	// 如果环境变量未设置，使用默认的Supabase连接信息
+	// 设置默认值
 	if host == "" {
-		host = "db.lvafyknbbxmcatbmzeij.supabase.co"
+		host = "localhost"
 	}
 	if port == "" {
-		port = "5432"
+		port = "3306"
 	}
 	if user == "" {
-		user = "postgres"
-	}
-	if password == "" {
-		password = os.Getenv("SUPABASE_DB_PASSWORD") // 需要设置实际密码
+		user = "root"
 	}
 	if dbname == "" {
-		dbname = "postgres"
+		dbname = "shuashuati"
+	}
+	if charset == "" {
+		charset = "utf8mb4"
 	}
 
-	// 构建PostgreSQL DSN
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require TimeZone=Asia/Shanghai",
-		host, port, user, password, dbname)
+	// 构建MySQL DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
+		user, password, host, port, dbname, charset)
 
-	// 连接数据库
+	// 连接MySQL数据库
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("Failed to connect to MySQL database:", err)
 	}
 
-	log.Println("Database connected successfully")
+	log.Printf("MySQL database connected successfully (Host: %s:%s, Database: %s)", host, port, dbname)
 
 	// 自动迁移数据库表结构
 	migrateDatabase()
@@ -63,35 +67,47 @@ func InitDatabase() {
 	initializeDefaultData()
 }
 
-// GetDB 获取数据库实例
+/**
+ * GetDB 获取数据库实例
+ * @return *gorm.DB 数据库连接实例
+ */
 func GetDB() *gorm.DB {
 	return DB
 }
 
-// migrateDatabase 自动迁移数据库表结构
-// 注意：Supabase数据库表结构已通过SQL迁移文件创建，这里只做检查
+/**
+ * migrateDatabase 自动迁移数据库表结构
+ * 检查并创建必要的数据库表
+ */
 func migrateDatabase() {
-	// 检查必要的表是否存在
-	if !DB.Migrator().HasTable(&models.Category{}) {
-		log.Println("Warning: categories table not found, please run Supabase migrations")
+	log.Println("Starting database migration...")
+
+	// 自动迁移所有模型
+	err := DB.AutoMigrate(
+		&models.User{},
+		&models.Admin{},
+		&models.Category{},
+		&models.Question{},
+		&models.AnswerRecord{},
+		&models.MistakeBook{},
+		&models.SystemSetting{},
+		&models.OperationLog{},
+	)
+
+	if err != nil {
+		log.Printf("Database migration failed: %v", err)
+	} else {
+		log.Println("Database migration completed successfully")
 	}
-	if !DB.Migrator().HasTable(&models.Question{}) {
-		log.Println("Warning: questions table not found, please run Supabase migrations")
-	}
-	if !DB.Migrator().HasTable(&models.AnswerRecord{}) {
-		log.Println("Warning: answer_records table not found, please run Supabase migrations")
-	}
-	if !DB.Migrator().HasTable(&models.MistakeBook{}) {
-		log.Println("Warning: mistake_books table not found, please run Supabase migrations")
-	}
-	if !DB.Migrator().HasTable(&models.Admin{}) {
-		log.Println("Warning: admins table not found, please run Supabase migrations")
-	}
-	log.Println("Database table check completed")
 }
 
-// initializeDefaultData 初始化默认数据
+/**
+ * initializeDefaultData 初始化默认数据
+ * 创建默认的管理员账号、系统设置等
+ */
 func initializeDefaultData() {
+	log.Println("Initializing default data...")
+
 	// 检查是否已存在管理员
 	var adminCount int64
 	DB.Model(&models.Admin{}).Count(&adminCount)
@@ -99,12 +115,12 @@ func initializeDefaultData() {
 		// 创建默认管理员账号
 		passwordHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("Failed to hash password: %v", err)
+			log.Printf("Failed to hash admin password: %v", err)
 		} else {
 			admin := models.Admin{
 				Username:     "admin",
 				PasswordHash: string(passwordHash),
-				Email:        "admin@example.com",
+				Email:        "admin@shuashuati.com",
 				Role:         "admin",
 			}
 
@@ -123,13 +139,13 @@ func initializeDefaultData() {
 		// 创建admin用户在User表中
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("Failed to hash password: %v", err)
+			log.Printf("Failed to hash admin user password: %v", err)
 		} else {
 			adminUser := models.User{
 				Username: "admin",
-				Email:    "admin@example.com",
+				Email:    "admin@shuashuati.com",
 				Password: string(hashedPassword),
-				Nickname: "管理员",
+				Nickname: "系统管理员",
 				Role:     "admin",
 				Status:   "active",
 			}
@@ -137,7 +153,7 @@ func initializeDefaultData() {
 			if err := DB.Create(&adminUser).Error; err != nil {
 				log.Printf("Failed to create admin user: %v", err)
 			} else {
-				log.Println("Default admin user created in User table successfully (username: admin, password: 123456)")
+				log.Println("Default admin user created in User table successfully")
 			}
 		}
 	}
@@ -149,11 +165,11 @@ func initializeDefaultData() {
 		// 创建默认测试用户
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("Failed to hash password: %v", err)
+			log.Printf("Failed to hash test user password: %v", err)
 		} else {
 			testUser := models.User{
 				Username: "testuser",
-				Email:    "testuser@example.com",
+				Email:    "testuser@shuashuati.com",
 				Password: string(hashedPassword),
 				Nickname: "测试用户",
 				Role:     "user",
@@ -175,11 +191,11 @@ func initializeDefaultData() {
 		// 创建默认系统设置
 		basicSettings := models.SystemSetting{
 			Key:   "basic",
-			Value: `{"system_name":"刷刷题","system_description":"专业的在线刷题平台","system_version":"1.0.0","contact_email":"admin@example.com","system_status":"normal","maintenance_notice":""}`,
+			Value: `{"systemName":"刷刷题","systemDescription":"专业的在线刷题平台","systemVersion":"1.0.0","contactEmail":"admin@shuashuati.com","systemStatus":"normal","maintenanceNotice":""}`,
 		}
 		quizSettings := models.SystemSetting{
 			Key:   "quiz",
-			Value: `{"daily_limit":0,"time_limit":0,"enable_points":true,"correct_points":1,"wrong_points":0,"quiz_modes":["random","category"],"show_explanation":"after_answer"}`,
+			Value: `{"dailyLimit":0,"timeLimit":0,"enablePoints":true,"correctPoints":1,"wrongPoints":0,"quizModes":["random","category"],"showExplanation":"afterAnswer"}`,
 		}
 
 		if err := DB.Create(&basicSettings).Error; err != nil {
@@ -230,4 +246,6 @@ func initializeDefaultData() {
 		}
 		log.Println("Test operation logs created successfully")
 	}
+
+	log.Println("Default data initialization completed")
 }

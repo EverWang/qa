@@ -33,9 +33,12 @@ func main() {
 	routes.SetupRoutes(r)
 
 	// 获取端口
-	port := os.Getenv("SERVER_PORT")
+	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = os.Getenv("SERVER_PORT")
+		if port == "" {
+			port = "8080"
+		}
 	}
 
 	// 启动服务器

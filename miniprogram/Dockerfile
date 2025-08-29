@@ -1,32 +1,15 @@
+# 刷刷题用户端前端 Dockerfile
+# 使用已构建的dist目录
 
-# 构建阶段
-FROM docker.m.daocloud.io/node:18-alpine AS builder
+FROM docker.m.daocloud.io/library/nginx:alpine
+# 复制构建产物
+COPY dist /usr/share/nginx/html
 
-WORKDIR /app
-
-# 复制package文件
-COPY package*.json ./
-
-# 安装依赖
-RUN npm ci
-
-# 复制源代码
-COPY . .
-
-# 构建应用
-RUN npm run build
-
-# 运行阶段
-FROM docker.m.daocloud.io/nginx:alpine
-
-# 复制构建产物到nginx目录
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# 复制nginx配置
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 复制 nginx 配置
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # 暴露端口
 EXPOSE 80
 
-# 启动nginx
+# 启动 nginx
 CMD ["nginx", "-g", "daemon off;"]

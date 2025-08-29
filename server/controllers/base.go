@@ -56,15 +56,15 @@ func PageSuccessResponse(c *gin.Context, data interface{}, total int64, page, si
 }
 
 // GetUserID 从上下文获取用户ID
-func GetUserID(c *gin.Context) (uuid.UUID, bool) {
+func GetUserID(c *gin.Context) (uint, bool) {
 	userID, exists := c.Get("userId")
 	if !exists {
-		return uuid.Nil, false
+		return 0, false
 	}
-	if id, ok := userID.(uuid.UUID); ok {
+	if id, ok := userID.(uint); ok {
 		return id, true
 	}
-	return uuid.Nil, false
+	return 0, false
 }
 
 // GetOpenID 从上下文获取OpenID

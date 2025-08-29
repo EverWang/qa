@@ -195,9 +195,9 @@
                 </el-table-column>
                 <el-table-column prop="categoryId" label="分类" width="100">
                   <template #default="{ row }">
-                    <div :class="{ 'error': row.errors?.category_id }">
-                      {{ getCategoryName(row.category_id) }}
-                      <el-tooltip v-if="row.errors?.category_id" :content="row.errors.category_id">
+                    <div :class="{ 'error': row.errors?.categoryId }">
+                      {{ getCategoryName(row.categoryId) }}
+                      <el-tooltip v-if="row.errors?.categoryId" :content="row.errors.categoryId">
                         <el-icon class="error-icon"><Warning /></el-icon>
                       </el-tooltip>
                     </div>
@@ -569,7 +569,7 @@ const validateData = (data: any[]) => {
     // 验证分类ID
     const categoryId = parseInt(row['分类ID'])
     if (!categoryId || !categories.value.find(cat => cat.id === categoryId)) {
-      errors.category_id = '分类ID不存在'
+      errors.categoryId = '分类ID不存在'
       valid = false
     }
     
@@ -595,7 +595,7 @@ const validateData = (data: any[]) => {
       content: row['题目内容'],
       type: row['题目类型'],
       difficulty: row['难度等级'],
-      category_id: categoryId,
+      categoryId: categoryId,
       options: [row['选项A'], row['选项B'], row['选项C'], row['选项D'], row['选项E'], row['选项F']]
         .filter(opt => opt && opt.toString().trim()),
       answer: row['正确答案'],
@@ -617,7 +617,7 @@ const confirmImport = async () => {
         content: item.content,
         type: item.type,
         difficulty: item.difficulty,
-        category_id: item.category_id,
+        categoryId: item.categoryId,
         options: item.options.length > 0 ? item.options : undefined,
         answer: item.answer,
         explanation: item.explanation || undefined

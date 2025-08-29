@@ -97,11 +97,11 @@
           </div>
           <div class="info-item">
             <span class="info-label">创建时间：</span>
-            <span class="info-value">{{ formatDate(question.created_at) }}</span>
+            <span class="info-value">{{ formatDate(question.createdAt) }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">更新时间：</span>
-            <span class="info-value">{{ formatDate(question.updated_at) }}</span>
+            <span class="info-value">{{ formatDate(question.updatedAt) }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">所属分类：</span>
@@ -141,13 +141,13 @@ interface Question {
   options?: string[]
   answer: string | string[]
   explanation?: string
-  category_id: number
+  categoryId: number
   category?: {
     id: number
     name: string
   }
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 // Props
@@ -162,6 +162,10 @@ const emit = defineEmits<{
 
 // 判断是否为正确选项
 const isCorrectOption = (option: string, index: number) => {
+  if (!props.question.answer) {
+    return false
+  }
+  
   if (props.question.type === 'single') {
     const answerIndex = getOptionIndex(props.question.answer as string)
     return index === answerIndex
@@ -170,6 +174,9 @@ const isCorrectOption = (option: string, index: number) => {
       ? props.question.answer 
       : [props.question.answer]
     return answers.some(ans => {
+      if (!ans || typeof ans !== 'string') {
+        return false
+      }
       const answerIndex = getOptionIndex(ans)
       return index === answerIndex
     })
@@ -179,6 +186,9 @@ const isCorrectOption = (option: string, index: number) => {
 
 // 获取选项索引
 const getOptionIndex = (answer: string) => {
+  if (!answer || typeof answer !== 'string') {
+    return -1
+  }
   const optionMap: Record<string, number> = {
     'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5
   }

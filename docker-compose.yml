@@ -1,101 +1,126 @@
+# 刷刷题项目 - WSL+Ubuntu+Podman Compose 部署配置
+# 适用于 Windows 11 WSL + Ubuntu 22.04 + Podman Compose 环境
+
 version: '3.8'
 
 services:
-  # MySQL数据库服务
+  # MySQL 8.0 数据库服务
   mysql:
-    image: docker.m.daocloud.io/mysql:8.0
-    container_name: qaminiprogram_mysql
-    restart: always
+    image: docker.m.daocloud.io/library/mysql:8.0
+    container_name: shuashuati_mysql
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: qaminiprogram
-      MYSQL_USER: qaminiprogram
-      MYSQL_PASSWORD: qaminiprogram123
+      MYSQL_DATABASE: shuashuati
+      MYSQL_USER: shuashuati
+      MYSQL_PASSWORD: shuashuati123
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./server/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
-      - qaminiprogram_network
-    command: --default-authentication-plugin=mysql_native_password
+      - shuashuati_network
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+      --max-connections=200
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+      start_period: 40s
 
-  # Golang后端服务
+  # Golang 后端 API 服务
   backend:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: qaminiprogram_backend
-    restart: always
+    container_name: shuashuati_backend
+    restart: unless-stopped
     environment:
+      # 数据库配置
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: qaminiprogram
-      DB_PASSWORD: qaminiprogram123
-      DB_NAME: qaminiprogram
-      JWT_SECRET: your_jwt_secret_key_here_change_in_production
+      DB_USER: shuashuati
+      DB_PASSWORD: shuashuati123
+      DB_NAME: shuashuati
+      DB_CHARSET: utf8mb4
+      # JWT 配置
+      JWT_SECRET: shuashuati_jwt_secret_key_2024
       JWT_EXPIRE_HOURS: 24
+      # 服务器配置
+      PORT: 8080
       SERVER_PORT: 8080
       SERVER_MODE: release
-      ALLOWED_ORIGINS: "*"
+      GIN_MODE: release
+      # CORS 配置
+      ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3001"
     ports:
       - "8080:8080"
-    depends_on:
-      - mysql
+    # depends_on:
+    #   - mysql
     networks:
-      - qaminiprogram_network
+      - shuashuati_network
     volumes:
-      - ./server:/app
+      - ./server:/app:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
+      start_period: 30s
 
-  # 小程序前端服务
+  # 用户端前端服务 (Vue3 + Vite)
   miniprogram:
     build:
       context: ./miniprogram
       dockerfile: Dockerfile
-    container_name: qaminiprogram_miniprogram
-    restart: always
+    container_name: shuashuati_miniprogram
+    restart: unless-stopped
     ports:
       - "3000:80"
     networks:
-      - qaminiprogram_network
-    depends_on:
-      - backend
+      - shuashuati_network
+    # depends_on:
+    #   - backend
+    volumes:
+      - ./miniprogram/nginx.conf:/etc/nginx/nginx.conf:ro
 
-  # 管理端前端服务
+  # 管理端前端服务 (Vue3 + Element Plus)
   admin-web:
     build:
       context: ./admin-web
       dockerfile: Dockerfile
-    container_name: qaminiprogram_admin
-    restart: always
+    container_name: shuashuati_admin
+    restart: unless-stopped
     ports:
       - "3001:80"
     networks:
-      - qaminiprogram_network
-    depends_on:
-      - backend
-
-  # Nginx反向代理
-  nginx:
-    image: docker.m.daocloud.io/nginx:alpine
-    container_name: qaminiprogram_nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
+      - shuashuati_network
+    # depends_on:
+    #   - backend
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/conf.d:/etc/nginx/conf.d
-    depends_on:
-      - backend
-      - miniprogram
-      - admin-web
-    networks:
-      - qaminiprogram_network
+      - ./admin-web/nginx.conf:/etc/nginx/nginx.conf:ro
 
+# 数据卷配置
 volumes:
   mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/mysql
 
+# 网络配置
 networks:
-  qaminiprogram_network:
+  shuashuati_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -335,11 +335,38 @@ func UpdateQuestion(c *gin.Context) {
 		question.Options = models.JSONArray(req.Options)
 	}
 	if req.CorrectAnswer != nil {
-		// 验证正确答案索引
-		if *req.CorrectAnswer >= len(question.Options) {
-			ErrorResponse(c, http.StatusBadRequest, "正确答案索引超出范围")
-			return
+		// 根据题目类型验证正确答案
+		questionType := req.Type
+		if questionType == "" {
+			questionType = question.Type // 使用现有类型
 		}
+		
+		if questionType == "single" || questionType == "judge" {
+			// 单选题和判断题：验证答案索引
+			if *req.CorrectAnswer >= len(question.Options) {
+				ErrorResponse(c, http.StatusBadRequest, "正确答案索引超出范围")
+				return
+			}
+		} else if questionType == "multiple" {
+			// 多选题：验证位掩码
+			maxValidMask := (1 << len(question.Options)) - 1
+			if *req.CorrectAnswer < 0 || *req.CorrectAnswer > maxValidMask {
+				ErrorResponse(c, http.StatusBadRequest, "多选题答案格式错误")
+				return
+			}
+			// 确保至少选择了一个答案
+			if *req.CorrectAnswer == 0 {
+				ErrorResponse(c, http.StatusBadRequest, "多选题至少需要选择一个正确答案")
+				return
+			}
+		} else if questionType == "fill" {
+			// 填空题：答案通常为0，实际答案存储在explanation中
+			if *req.CorrectAnswer != 0 {
+				ErrorResponse(c, http.StatusBadRequest, "填空题答案索引应为0")
+				return
+			}
+		}
+		
 		question.CorrectAnswer = *req.CorrectAnswer
 	}
 	if req.Explanation != "" {

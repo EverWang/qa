@@ -8,34 +8,38 @@ import (
 	"github.com/google/uuid"
 )
 
-// User 用户模型 - 使用Supabase auth.users表
+// User 用户模型 - 使用MySQL数据库
 type User struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OpenID     *string   `json:"openid" gorm:"index;size:100"`
-	Username   string    `json:"username" gorm:"size:50"`
-	Email      string    `json:"email" gorm:"size:100"`
-	Password   string    `json:"-" gorm:"size:255"`
-	Nickname   string    `json:"nickname" gorm:"size:50;not null"`
-	Avatar     string    `json:"avatar" gorm:"size:255"`
-	Role       string    `json:"role" gorm:"type:varchar(20);default:'user'"`
-	Status     string    `json:"status" gorm:"type:varchar(20);default:'active'"`
-	IsVerified bool      `json:"isVerified" gorm:"default:false"`
-	IsGuest    bool      `json:"isGuest" gorm:"default:false"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID               uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	OpenID           string    `json:"openid" gorm:"uniqueIndex;size:100;not null"`
+	Username         string    `json:"username" gorm:"size:50"`
+	Email            string    `json:"email" gorm:"size:100"`
+	Password         string    `json:"-" gorm:"size:255"`
+	Nickname         string    `json:"nickname" gorm:"size:100;default:''"`
+	Avatar           string    `json:"avatar" gorm:"size:500;default:''"`
+	Role             string    `json:"role" gorm:"type:enum('user','admin');default:'user'"`
+	Status           string    `json:"status" gorm:"type:varchar(20);default:'active'"`
+	IsVerified       bool      `json:"isVerified" gorm:"default:false"`
+	IsGuest          bool      `json:"isGuest" gorm:"default:false"`
+	TotalAnswered    int       `json:"totalAnswered" gorm:"default:0"`
+	TotalCorrect     int       `json:"totalCorrect" gorm:"default:0"`
+	AccuracyRate     float64   `json:"accuracyRate" gorm:"type:decimal(5,2);default:0.00"`
+	LastActiveTime   *time.Time `json:"lastActiveTime"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 // Category 分类模型
 type Category struct {
-	ID          uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Name        string     `json:"name" gorm:"size:50;not null"`
-	Description string     `json:"description" gorm:"size:255"`
-	ParentID    *uuid.UUID `json:"parentId" gorm:"type:uuid;index"`
-	Level       int        `json:"level" gorm:"default:1"`
-	Sort        int        `json:"sortOrder" gorm:"default:0"`
-	Status      int        `json:"status" gorm:"default:1;comment:状态 1-启用 0-禁用"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	ID          uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name        string    `json:"name" gorm:"size:100;not null"`
+	Description string    `json:"description" gorm:"size:255"`
+	ParentID    *uint     `json:"parentId" gorm:"index"`
+	Level       int       `json:"level" gorm:"default:1"`
+	Sort        int       `json:"sortOrder" gorm:"default:0"`
+	Status      int       `json:"status" gorm:"default:1;comment:状态 1-启用 0-禁用"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 	
 	// 关联
 	Parent   *Category  `json:"parent,omitempty" gorm:"foreignKey:ParentID"`
@@ -75,18 +79,18 @@ func (j JSONArray) Value() (driver.Value, error) {
 
 // Question 题目模型
 type Question struct {
-	ID            uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Title         string     `json:"title" gorm:"size:200;not null"`
-	Content       string     `json:"content" gorm:"type:text;not null"`
-	Type          string     `json:"type" gorm:"type:varchar(20);default:'single'"`
-	Options       JSONArray  `json:"options" gorm:"type:jsonb;not null"`
-	CorrectAnswer int        `json:"correctAnswer" gorm:"not null"`
-	Explanation   string     `json:"explanation" gorm:"type:text"`
-	Difficulty    string     `json:"difficulty" gorm:"type:varchar(20);default:'medium'"`
-	CategoryID    uuid.UUID  `json:"categoryId" gorm:"type:uuid;not null;index"`
-	CreatorID     *uuid.UUID `json:"creatorId" gorm:"type:uuid;index"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
+	ID            uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title         string    `json:"title" gorm:"size:500;not null"`
+	Content       string    `json:"content" gorm:"type:text;not null"`
+	Type          string    `json:"type" gorm:"type:varchar(20);default:'single'"`
+	Options       JSONArray `json:"options" gorm:"type:json;not null"`
+	CorrectAnswer int       `json:"correctAnswer" gorm:"not null"`
+	Explanation   string    `json:"explanation" gorm:"type:text"`
+	Difficulty    string    `json:"difficulty" gorm:"type:varchar(20);default:'medium'"`
+	CategoryID    uint      `json:"categoryId" gorm:"not null;index"`
+	CreatorID     *uint     `json:"creatorId" gorm:"index"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 	
 	// 关联
 	Category *Category `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
@@ -95,13 +99,13 @@ type Question struct {
 
 // AnswerRecord 答题记录模型
 type AnswerRecord struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID     uuid.UUID `json:"userId" gorm:"type:uuid;not null;index"`
-	QuestionID uuid.UUID `json:"questionId" gorm:"type:uuid;not null;index"`
+	ID         uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID     uint      `json:"userId" gorm:"not null;index"`
+	QuestionID uint      `json:"questionId" gorm:"not null;index"`
 	UserAnswer int       `json:"userAnswer" gorm:"not null"`
 	IsCorrect  bool      `json:"isCorrect" gorm:"not null"`
 	TimeSpent  int       `json:"timeSpent" gorm:"default:0"`
-	CreatedAt  time.Time `json:"createdAt"`
+	AnsweredAt time.Time `json:"answeredAt" gorm:"default:CURRENT_TIMESTAMP"`
 	
 	// 关联
 	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -110,11 +114,11 @@ type AnswerRecord struct {
 
 // MistakeBook 错题本模型
 type MistakeBook struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	UserID     uuid.UUID `json:"userId" gorm:"type:uuid;not null;index"`
-	QuestionID uuid.UUID `json:"questionId" gorm:"type:uuid;not null;index"`
+	ID         uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID     uint      `json:"userId" gorm:"not null;index"` 
+	QuestionID uint      `json:"questionId" gorm:"not null;index"`
 	IsMastered bool      `json:"isMastered" gorm:"default:false"`
-	CreatedAt  time.Time `json:"createdAt"`
+	AddedAt    time.Time `json:"addedAt" gorm:"default:CURRENT_TIMESTAMP"`
 	
 	// 关联
 	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -123,7 +127,7 @@ type MistakeBook struct {
 
 // Admin 管理员模型
 type Admin struct {
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID           uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username     string    `json:"username" gorm:"uniqueIndex;size:50;not null"`
 	PasswordHash string    `json:"-" gorm:"size:255;not null"`
 	Email        string    `json:"email" gorm:"size:100"`

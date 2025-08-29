@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - img [ref=e9]
+      - heading "刷刷题" [level=1] [ref=e11]
+    - generic [ref=e12]:
+      - button [ref=e13] [cursor=pointer]:
+        - img [ref=e14] [cursor=pointer]
+      - button "登录" [ref=e17] [cursor=pointer]:
+        - img [ref=e18] [cursor=pointer]
+        - generic [ref=e21] [cursor=pointer]: 登录
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - heading "欢迎来到刷刷题" [level=2] [ref=e24]
+      - paragraph [ref=e25]: 专业的在线刷题平台，助你轻松通过考试
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - img [ref=e28]
+          - generic [ref=e32]: 0+ 道题目
+        - generic [ref=e33]:
+          - img [ref=e34]
+          - generic [ref=e39]: 0+ 用户
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - generic [ref=e44]: 0% 通过率
+    - heading "题目分类" [level=3] [ref=e46]
+    - generic [ref=e48]:
+      - heading "推荐题目" [level=3] [ref=e49]
+      - button "换一批" [ref=e50] [cursor=pointer]:
+        - img [ref=e51] [cursor=pointer]
+        - generic [ref=e54] [cursor=pointer]: 换一批
+  - generic [ref=e57]:
+    - button "首页" [ref=e58] [cursor=pointer]:
+      - img [ref=e59] [cursor=pointer]
+      - generic [ref=e62] [cursor=pointer]: 首页
+    - button "分类" [ref=e63] [cursor=pointer]:
+      - img [ref=e64] [cursor=pointer]
+      - generic [ref=e66] [cursor=pointer]: 分类
+    - button "错题本" [ref=e67] [cursor=pointer]:
+      - img [ref=e68] [cursor=pointer]
+      - generic [ref=e70] [cursor=pointer]: 错题本
+    - button "我的" [ref=e71] [cursor=pointer]:
+      - img [ref=e72] [cursor=pointer]
+      - generic [ref=e75] [cursor=pointer]: 我的
+```

@@ -273,8 +273,18 @@ func UpdateCategory(c *gin.Context) {
 	if req.Description != "" {
 		category.Description = req.Description
 	}
-	if req.ParentID != nil {
-		category.ParentID = req.ParentID
+	// 处理ParentID字段，包括设置为nil的情况
+	category.ParentID = req.ParentID
+	// 根据ParentID自动计算层级
+	if req.ParentID == nil {
+		// 设置为大类
+		category.Level = 1
+	} else {
+		// 根据父分类层级计算
+		var parentCategory models.Category
+		if err := db.Where("id = ?", *req.ParentID).First(&parentCategory).Error; err == nil {
+			category.Level = parentCategory.Level + 1
+		}
 	}
 	if req.Level != nil {
 		category.Level = *req.Level

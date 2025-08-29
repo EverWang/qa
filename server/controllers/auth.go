@@ -363,10 +363,14 @@ func GuestLogin(c *gin.Context) {
 		guestUsername = guestUsername[:50]
 	}
 	
+	// 生成游客OpenID
+	guestOpenID := "guest_" + deviceID
+	
 	// 首先尝试查找已存在的游客用户
-	if err := db.Where("username = ? AND is_guest = true", guestUsername).First(&user).Error; err != nil {
+	if err := db.Where("openid = ? AND is_guest = true", guestOpenID).First(&user).Error; err != nil {
 		// 如果没有找到，创建新的游客用户
 		user = models.User{
+			OpenID:   guestOpenID,
 			Username: guestUsername,
 			Nickname: "游客" + generateRandomString(6),
 			Avatar:   "",

@@ -229,7 +229,7 @@ func GetSystemStatistics(c *gin.Context) {
 	// 获取活跃用户数（最近7天有答题记录的用户）
 	var activeUsers int64
 	db.Model(&models.AnswerRecord{}).
-		Where("created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)").
+		Where("created_at >= NOW() - INTERVAL '7 days'").
 		Distinct("user_id").
 		Count(&activeUsers)
 

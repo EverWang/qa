@@ -201,44 +201,58 @@ const fetchStats = async () => {
 // 获取最近活动
 const fetchRecentActivities = async () => {
   try {
-    // 暂时使用模拟数据，因为后端还没有实现activities接口
-    // const response = await api.get('/api/v1/admin/activities')
-    // recentActivities.value = response.data.data
-    throw new Error('使用模拟数据')
+    const response = await api.get('/api/v1/admin/operation-logs?page=1&pageSize=10')
+    const logs = response.data.data || []
+    
+    // 转换操作日志为活动格式
+    recentActivities.value = logs.map((log: any) => ({
+      id: log.id,
+      type: getActivityTypeFromAction(log.action),
+      title: getActivityTitle(log.action, log.resource),
+      description: log.description || `${log.operator} ${log.action} ${log.resource}`,
+      timestamp: formatTimestamp(log.created_at)
+    }))
   } catch (error) {
     console.error('获取最近活动失败:', error)
-    // 使用模拟数据
-    recentActivities.value = [
-      {
-        id: 1,
-        type: 'question',
-        title: '新增题目',
-        description: '管理员添加了5道关于Vue.js的题目',
-        timestamp: '2024-01-15 14:30:00'
-      },
-      {
-        id: 2,
-        type: 'user',
-        title: '用户注册',
-        description: '新用户"张三"完成注册',
-        timestamp: '2024-01-15 13:45:00'
-      },
-      {
-        id: 3,
-        type: 'category',
-        title: '分类更新',
-        description: '更新了"前端开发"分类的描述信息',
-        timestamp: '2024-01-15 12:20:00'
-      },
-      {
-        id: 4,
-        type: 'system',
-        title: '系统维护',
-        description: '完成了数据库优化和性能调优',
-        timestamp: '2024-01-15 10:00:00'
-      }
-    ]
+    ElMessage.warning('获取最近活动失败，请稍后重试')
+    recentActivities.value = []
   }
+}
+
+// 根据操作类型获取活动类型
+const getActivityTypeFromAction = (action: string): string => {
+  if (action.includes('题目') || action.includes('question')) return 'question'
+  if (action.includes('用户') || action.includes('user')) return 'user'
+  if (action.includes('分类') || action.includes('category')) return 'category'
+  return 'system'
+}
+
+// 获取活动标题
+const getActivityTitle = (action: string, resource: string): string => {
+  const actionMap: Record<string, string> = {
+    'create': '新增',
+    'update': '更新',
+    'delete': '删除',
+    'login': '登录',
+    'logout': '登出'
+  }
+  
+  const actionText = actionMap[action.toLowerCase()] || action
+  return `${actionText}${resource || ''}`
+}
+
+// 格式化时间戳
+const formatTimestamp = (timestamp: string): string => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 // 初始化分类分布图表

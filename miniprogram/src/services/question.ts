@@ -10,10 +10,10 @@ export enum QuestionDifficulty {
 
 // 题目类型枚举
 export enum QuestionType {
-  SINGLE_CHOICE = 'single_choice',
-  MULTIPLE_CHOICE = 'multiple_choice',
-  TRUE_FALSE = 'true_false',
-  FILL_BLANK = 'fill_blank',
+  SINGLE_CHOICE = 'singleChoice',
+  MULTIPLE_CHOICE = 'multipleChoice',
+  TRUE_FALSE = 'trueFalse',
+  FILL_BLANK = 'fillBlank',
   ESSAY = 'essay'
 }
 
@@ -88,7 +88,7 @@ export interface MistakeBook {
 // 搜索参数接口
 export interface QuestionSearchParams {
   keyword?: string
-  categoryId?: number
+  categoryId?: number | string
   difficulty?: QuestionDifficulty
   type?: QuestionType
   tags?: string[]
@@ -130,30 +130,89 @@ export class QuestionService {
       console.log('QuestionService.getQuestions 原始响应:', response)
       
       // 转换后端数据格式到前端期望格式
-      if (response.success && response.data && response.data.items) {
-        response.data.items = response.data.items.map((item: any) => {
-          console.log('转换题目数据:', item)
-          return {
-            id: item.id,
-            title: item.title,
-            content: item.content,
-            type: item.type,
-            difficulty: item.difficulty,
-            options: Array.isArray(item.options) ? item.options.map((opt: any, index: number) => ({
-              id: String.fromCharCode(65 + index), // A, B, C, D
-              content: opt,
-              isCorrect: item.correct_answer === index
-            })) : [],
-            correctAnswer: item.correct_answer,
-            explanation: item.explanation || '',
-            categoryId: item.category_id,
-            categoryName: item.category?.name || '未分类',
-            tags: item.tags || [],
-            createdAt: item.createdAt,
-            updatedAt: item.updatedAt
+      if (response.success && response.data) {
+        console.log('QuestionService.getQuestions 检查响应数据结构:', response.data)
+        
+        // 检查数据格式：后端返回的格式可能是 { data: [...], total, page, size }
+        let items = []
+        let paginationInfo = {
+          total: 0,
+          page: 1,
+          size: 10,
+          totalPages: 1
+        }
+        
+        if (Array.isArray(response.data)) {
+          // 如果直接是数组
+          console.log('QuestionService.getQuestions 检测到直接数组格式')
+          items = response.data
+          paginationInfo = {
+            total: items.length,
+            page: backendParams.page || 1,
+            size: backendParams.size || 10,
+            totalPages: Math.ceil(items.length / (backendParams.size || 10))
           }
-        })
-        console.log('转换后的题目数据:', response.data.items)
+        } else if ((response.data as any).data && Array.isArray((response.data as any).data)) {
+          // 如果是 { data: [...], total, page, size } 格式
+          console.log('QuestionService.getQuestions 检测到嵌套数据格式')
+          items = (response.data as any).data
+          paginationInfo = {
+            total: (response.data as any).total || items.length,
+            page: (response.data as any).page || 1,
+            size: (response.data as any).size || 10,
+            totalPages: Math.ceil(((response.data as any).total || items.length) / ((response.data as any).size || 10))
+          }
+        } else if ((response.data as any).items && Array.isArray((response.data as any).items)) {
+          // 如果是 { items: [...], total, page, size } 格式
+          console.log('QuestionService.getQuestions 检测到items格式')
+          items = (response.data as any).items
+          paginationInfo = {
+            total: (response.data as any).total || items.length,
+            page: (response.data as any).page || 1,
+            size: (response.data as any).size || 10,
+            totalPages: (response.data as any).totalPages || Math.ceil(((response.data as any).total || items.length) / ((response.data as any).size || 10))
+          }
+        }
+        
+        if (items.length > 0) {
+          const transformedItems = items.map((item: any) => {
+            console.log('转换题目数据:', item)
+            return {
+              id: item.id,
+              title: item.title,
+              content: item.content,
+              type: item.type,
+              difficulty: item.difficulty,
+              options: Array.isArray(item.options) ? item.options.map((opt: any, index: number) => ({
+                id: String.fromCharCode(65 + index), // A, B, C, D
+                content: opt,
+                isCorrect: item.correctAnswer === index
+              })) : [],
+              correctAnswer: item.correctAnswer,
+              explanation: item.explanation || '',
+              categoryId: item.categoryId,
+              categoryName: item.category?.name || '未分类',
+              tags: item.tags || [],
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt
+            }
+          })
+          console.log('转换后的题目数据:', transformedItems)
+          
+          // 重新构建响应数据
+           response.data = {
+             items: transformedItems,
+             ...paginationInfo,
+             pageSize: paginationInfo.size
+           }
+        } else {
+            // 没有数据时的处理
+            response.data = {
+              items: [],
+              ...paginationInfo,
+              pageSize: paginationInfo.size
+            }
+          }
       }
       
       return response
@@ -164,7 +223,7 @@ export class QuestionService {
   }
 
   // 获取题目详情
-  static async getQuestion(id: number): Promise<ApiResponse<Question>> {
+  static async getQuestion(id: number | string): Promise<ApiResponse<Question>> {
     try {
       console.log('QuestionService.getQuestion 调用参数:', id)
       const response = await apiClient.get<any>(`/api/v1/questions/${id}`)
@@ -182,9 +241,9 @@ export class QuestionService {
           type: item.type,
           difficulty: item.difficulty,
           options: Array.isArray(item.options) ? item.options : [],
-          correctAnswer: item.correct_answer,
+          correctAnswer: item.correctAnswer,
           explanation: item.explanation || '',
-          categoryId: item.category_id,
+          categoryId: item.categoryId,
           categoryName: item.category?.name || '未分类',
           tags: item.tags || [],
           createdAt: item.createdAt,
@@ -293,7 +352,7 @@ export class QuestionService {
   }
 
   // 获取分类详情
-  static async getCategory(id: number): Promise<ApiResponse<Category>> {
+  static async getCategory(id: number | string): Promise<ApiResponse<Category>> {
     return apiClient.get<Category>(`/api/v1/categories/${id}`)
   }
 
@@ -453,7 +512,7 @@ export class MockQuestionService {
     const total = 1000
     
     const questions = Array.from({ length: pageSize }, (_, i) => 
-      this.generateMockQuestion((page - 1) * pageSize + i + 1, params?.categoryId)
+      this.generateMockQuestion((page - 1) * pageSize + i + 1, typeof params?.categoryId === 'string' ? parseInt(params.categoryId) : params?.categoryId)
     )
     
     return {

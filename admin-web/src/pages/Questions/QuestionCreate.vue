@@ -222,7 +222,7 @@ import {
   Delete,
   Plus
 } from '@element-plus/icons-vue'
-import { api } from '@/lib/axios'
+import api from '@/lib/axios'
 import QuestionPreview from './QuestionPreview.vue'
 
 const router = useRouter()
@@ -409,14 +409,14 @@ const handleSave = async () => {
     const submitData = {
       title: form.content.trim(), // 后端期望title字段
       content: form.content.trim(),
-      type: form.type, // 添加缺失的type字段
+      type: form.type,
       options: (form.type === 'single' || form.type === 'multiple') 
         ? form.options.filter(opt => opt.trim()) 
-        : ['true', 'false'], // 判断题和填空题也需要提供options
-      correctAnswer: getCorrectAnswerIndex(), // 后端期望correctAnswer字段（驼峰命名）
+        : (form.type === 'judge' ? ['正确', '错误'] : []), // 判断题提供正确/错误选项
+      correctAnswer: getCorrectAnswerIndex(),
       explanation: form.explanation.trim() || '',
       difficulty: form.difficulty,
-      categoryId: parseInt(form.categoryId.toString()) // 后端期望categoryId字段（驼峰命名）
+      categoryId: form.categoryId // 保持字符串格式，后端会自动转换UUID
     }
     
     await api.post('/api/v1/admin/questions', submitData)

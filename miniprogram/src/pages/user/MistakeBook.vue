@@ -405,7 +405,7 @@ const loadMistakeQuestions = async () => {
       // 转换数据格式，添加状态字段
       mistakeQuestions.value = response.data.items.map(mistake => {
         // 根据isMastered字段确定状态
-        let status: 'not_reviewed' | 'reviewed' | 'mastered' = 'not_reviewed'
+        let status: 'notReviewed' | 'reviewed' | 'mastered' = 'notReviewed'
         if (mistake.isMastered) {
           status = 'mastered'
         } else if (mistake.lastReviewAt) {

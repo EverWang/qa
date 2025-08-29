@@ -1,332 +1,344 @@
 # 刷刷题项目部署指南
 
-## 项目概述
+## 环境要求
 
-本项目包含三个主要部分：
-- **小程序用户端** (`miniprogram/`) - Vue3 + TypeScript + uni-app
-- **管理端Web应用** (`admin-web/`) - Vue3 + TypeScript + Element Plus
-- **后端服务** (`server/`) - Golang + Gin + MySQL
+### 系统环境
+- **操作系统**: Windows 11
+- **WSL**: Windows Subsystem for Linux 2 (WSL2)
+- **Linux 发行版**: Ubuntu 22.04 LTS
+- **容器运行时**: Podman 4.0+
+- **容器编排**: Podman Compose
 
-## 文件大小分析结果
+### 硬件要求
+- **内存**: 最少 4GB，推荐 8GB+
+- **存储**: 最少 10GB 可用空间
+- **CPU**: 2 核心以上
 
-根据分析，项目各目录大小如下：
-- `admin-web/`: 255.26 MB (主要是node_modules)
-- `miniprogram/`: 174.66 MB (主要是node_modules)
-- `node_modules/`: 167.21 MB (根目录依赖)
-- `server/`: 15.34 MB (Go后端代码)
-- 题库文档: 3.01 MB
+## 环境准备
 
-**问题分析**: 项目总大小超过612MB，远超Vercel 10MB限制，主要原因是多个node_modules目录。
+### 1. 安装 WSL2 和 Ubuntu 22.04
 
-## 部署策略
+```powershell
+# 在 Windows PowerShell (管理员模式) 中执行
+wsl --install -d Ubuntu-22.04
 
-### 方案一：分离部署（推荐）
+# 重启计算机后，设置 Ubuntu 用户名和密码
+```
 
-#### 1. 小程序端部署
+### 2. 配置 WSL2 环境
 
-**特点**: 小程序需要通过微信开发者工具发布，不需要传统Web部署。
-
-**步骤**:
 ```bash
-# 1. 进入小程序目录
-cd miniprogram
+# 进入 WSL2 Ubuntu 环境
+wsl -d Ubuntu-22.04
 
-# 2. 安装依赖
-npm install
+# 更新系统包
+sudo apt update && sudo apt upgrade -y
 
-# 3. 构建项目
-npm run build:mp-weixin
-
-# 4. 使用微信开发者工具打开 dist/build/mp-weixin 目录
-# 5. 在微信开发者工具中预览和发布
+# 安装必要的工具
+sudo apt install -y curl wget git vim nano
 ```
 
-#### 2. 管理端Web应用部署
+### 3. 安装 Podman
 
-**Vercel部署**:
 ```bash
-# 1. 进入管理端目录
-cd admin-web
+# 添加 Podman 官方仓库
+sudo apt update
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:projectatomic/ppa
 
-# 2. 安装Vercel CLI
-npm install -g vercel
+# 安装 Podman
+sudo apt update
+sudo apt install -y podman
 
-# 3. 登录Vercel
-vercel login
-
-# 4. 部署
-vercel --prod
+# 验证安装
+podman --version
 ```
 
-**Netlify部署**:
+### 4. 安装 Podman Compose
+
 ```bash
-# 1. 构建项目
-cd admin-web
-npm run build
+# 安装 Python3 和 pip
+sudo apt install -y python3 python3-pip
 
-# 2. 将 dist/ 目录拖拽到 Netlify 部署页面
-# 或使用 Netlify CLI
-npm install -g netlify-cli
-netlify deploy --prod --dir=dist
+# 安装 podman-compose
+pip3 install podman-compose
+
+# 添加到 PATH (添加到 ~/.bashrc)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# 验证安装
+podman-compose --version
 ```
 
-**传统服务器部署**:
+### 5. 配置 Podman 无根模式
+
 ```bash
-# 1. 构建项目
-cd admin-web
-npm run build
+# 启用无根模式
+echo 'export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"' >> ~/.bashrc
+source ~/.bashrc
 
-# 2. 将 dist/ 目录上传到服务器
-# 3. 配置Nginx
+# 启动 Podman 服务
+systemctl --user enable --now podman.socket
 ```
 
-#### 3. 后端服务部署
+## 项目部署
 
-**本地运行**:
+### 1. 获取项目代码
+
 ```bash
-# 1. 确保MySQL运行在 localhost:3306
-# 2. 进入服务端目录
-cd server
-
-# 3. 安装依赖
-go mod tidy
-
-# 4. 运行服务
-go run main.go
+# 克隆项目到 WSL2 环境
+cd ~
+git clone <项目仓库地址> shuashuati
+cd shuashuati
 ```
 
-**云服务器部署**:
+### 2. 创建数据目录
+
 ```bash
-# 1. 编译
-cd server
-go build -o qaminiprogram-server main.go
-
-# 2. 上传到服务器并运行
-./qaminiprogram-server
+# 创建 MySQL 数据持久化目录
+mkdir -p ./data/mysql
+sudo chown -R 999:999 ./data/mysql
 ```
 
-### 方案二：Docker容器化部署
+### 3. 配置环境变量
 
-#### 1. 创建Docker配置
-
-**后端Dockerfile** (`server/Dockerfile`):
-```dockerfile
-FROM golang:1.21-alpine AS builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN go build -o main .
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/main .
-EXPOSE 8080
-CMD ["./main"]
-```
-
-**管理端Dockerfile** (`admin-web/Dockerfile`):
-```dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-**Docker Compose** (`docker-compose.yml`):
-```yaml
-version: '3.8'
-services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: qaminiprogram
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  backend:
-    build: ./server
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mysql
-    environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: 123456
-      DB_NAME: qaminiprogram
-
-  admin-web:
-    build: ./admin-web
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-volumes:
-  mysql_data:
-```
-
-#### 2. 运行Docker部署
 ```bash
-# 1. 构建并启动所有服务
-docker-compose up -d
+# 复制环境变量模板
+cp .env.example .env
 
-# 2. 查看服务状态
-docker-compose ps
-
-# 3. 查看日志
-docker-compose logs -f
+# 编辑环境变量
+nano .env
 ```
 
-## 本地开发环境搭建
-
-### 1. 环境要求
-- Node.js 18+
-- Go 1.21+
-- MySQL 8.0+
-- 微信开发者工具
-
-### 2. 数据库初始化
-```sql
--- 创建数据库
-CREATE DATABASE qaminiprogram CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 导入表结构
--- 运行 server/sql/ 目录下的SQL文件
-```
-
-### 3. 后端服务启动
+环境变量配置示例：
 ```bash
-cd server
-go mod tidy
-go run main.go
-```
-
-### 4. 管理端启动
-```bash
-cd admin-web
-npm install
-npm run dev
-```
-
-### 5. 小程序端启动
-```bash
-cd miniprogram
-npm install
-npm run dev:mp-weixin
-# 使用微信开发者工具打开 dist/dev/mp-weixin 目录
-```
-
-## 生产环境配置
-
-### 1. 环境变量配置
-
-**后端环境变量** (`.env`):
-```env
-DB_HOST=localhost
+# 数据库配置
+DB_HOST=mysql
 DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=123456
-DB_NAME=qaminiprogram
-JWT_SECRET=your-jwt-secret
-WECHAT_APP_ID=your-wechat-app-id
-WECHAT_APP_SECRET=your-wechat-app-secret
+DB_USER=shuashuati
+DB_PASSWORD=shuashuati123
+DB_NAME=shuashuati
+DB_CHARSET=utf8mb4
+
+# JWT 配置
+JWT_SECRET=shuashuati_jwt_secret_key_2024
+JWT_EXPIRE_HOURS=24
+
+# 服务器配置
+SERVER_PORT=8080
+SERVER_MODE=release
+GIN_MODE=release
+
+# CORS 配置
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:3001
 ```
 
-**前端环境变量** (`.env.production`):
-```env
-VITE_API_BASE_URL=https://your-api-domain.com
-VITE_APP_TITLE=刷刷题管理系统
+### 4. 构建和启动服务
+
+```bash
+# 构建所有服务镜像
+podman-compose build
+
+# 启动所有服务
+podman-compose up -d
+
+# 查看服务状态
+podman-compose ps
+
+# 查看服务日志
+podman-compose logs -f
 ```
 
-### 2. Nginx配置示例
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    
-    # 管理端静态文件
-    location / {
-        root /var/www/admin-web/dist;
-        try_files $uri $uri/ /index.html;
-    }
-    
-    # API代理
-    location /api/ {
-        proxy_pass http://localhost:8080/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+### 5. 验证部署
+
+```bash
+# 检查容器状态
+podman ps
+
+# 检查网络连接
+curl http://localhost:8080/api/health
+
+# 检查前端服务
+curl http://localhost:3000
+curl http://localhost:3001
+```
+
+## 服务访问
+
+部署成功后，可以通过以下地址访问各个服务：
+
+- **后端 API**: http://localhost:8080
+- **用户端前端**: http://localhost:3000
+- **管理端前端**: http://localhost:3001
+- **MySQL 数据库**: localhost:3306
+
+## 常用管理命令
+
+### 服务管理
+
+```bash
+# 启动所有服务
+podman-compose up -d
+
+# 停止所有服务
+podman-compose down
+
+# 重启特定服务
+podman-compose restart backend
+
+# 查看服务状态
+podman-compose ps
+
+# 查看服务日志
+podman-compose logs backend
+podman-compose logs mysql
+```
+
+### 数据库管理
+
+```bash
+# 连接到 MySQL 数据库
+podman exec -it shuashuati_mysql mysql -u shuashuati -p
+
+# 备份数据库
+podman exec shuashuati_mysql mysqldump -u shuashuati -pshuashuati123 shuashuati > backup.sql
+
+# 恢复数据库
+podman exec -i shuashuati_mysql mysql -u shuashuati -pshuashuati123 shuashuati < backup.sql
+```
+
+### 容器管理
+
+```bash
+# 查看所有容器
+podman ps -a
+
+# 进入容器
+podman exec -it shuashuati_backend /bin/sh
+
+# 查看容器资源使用情况
+podman stats
+
+# 清理未使用的镜像和容器
+podman system prune -a
 ```
 
 ## 故障排除
 
-### 1. 部署文件过大问题
-- **原因**: node_modules目录过大
-- **解决**: 使用优化后的.vercelignore文件，或采用分离部署策略
+### 常见问题
 
-### 2. 跨域问题
-- **原因**: 前后端域名不同
-- **解决**: 配置CORS或使用代理
+1. **容器启动失败**
+   ```bash
+   # 查看详细错误日志
+   podman-compose logs <service_name>
+   
+   # 检查端口占用
+   netstat -tulpn | grep <port>
+   ```
 
-### 3. 数据库连接问题
-- **检查**: 数据库服务是否启动
-- **检查**: 连接参数是否正确
-- **检查**: 防火墙设置
+2. **数据库连接失败**
+   ```bash
+   # 检查 MySQL 容器状态
+   podman logs shuashuati_mysql
+   
+   # 验证数据库连接
+   podman exec shuashuati_mysql mysql -u root -p123456 -e "SHOW DATABASES;"
+   ```
 
-### 4. 微信小程序发布问题
-- **检查**: AppID配置是否正确
-- **检查**: 域名是否已备案并配置到微信后台
-- **检查**: HTTPS证书是否有效
+3. **前端访问失败**
+   ```bash
+   # 检查前端容器日志
+   podman logs shuashuati_miniprogram
+   podman logs shuashuati_admin
+   
+   # 检查 Nginx 配置
+   podman exec shuashuati_miniprogram cat /etc/nginx/nginx.conf
+   ```
 
-## 监控和维护
+4. **后端 API 错误**
+   ```bash
+   # 查看后端日志
+   podman logs shuashuati_backend
+   
+   # 检查环境变量
+   podman exec shuashuati_backend env | grep DB_
+   ```
 
-### 1. 日志监控
+### 性能优化
+
+1. **调整 MySQL 配置**
+   ```bash
+   # 编辑 docker-compose.yml 中的 MySQL 命令参数
+   # 根据服务器内存调整 innodb-buffer-pool-size
+   ```
+
+2. **调整容器资源限制**
+   ```yaml
+   # 在 docker-compose.yml 中添加资源限制
+   deploy:
+     resources:
+       limits:
+         memory: 512M
+         cpus: '0.5'
+   ```
+
+## 安全建议
+
+1. **修改默认密码**
+   - 修改 MySQL root 密码
+   - 修改应用数据库用户密码
+   - 修改 JWT 密钥
+
+2. **网络安全**
+   - 配置防火墙规则
+   - 使用 HTTPS (生产环境)
+   - 限制数据库访问
+
+3. **数据备份**
+   - 定期备份数据库
+   - 备份应用配置文件
+   - 测试恢复流程
+
+## 更新和维护
+
+### 应用更新
+
 ```bash
-# 查看后端日志
-tail -f server/logs/app.log
+# 拉取最新代码
+git pull origin main
 
-# 查看Nginx日志
-tail -f /var/log/nginx/access.log
+# 重新构建镜像
+podman-compose build
+
+# 重启服务
+podman-compose down
+podman-compose up -d
 ```
 
-### 2. 性能监控
-- 使用PM2管理Node.js进程
-- 配置数据库慢查询日志
-- 设置服务器资源监控
+### 系统维护
 
-### 3. 备份策略
 ```bash
-# 数据库备份
-mysqldump -u root -p qaminiprogram > backup_$(date +%Y%m%d).sql
+# 清理系统
+podman system prune -a
 
-# 代码备份
-tar -czf code_backup_$(date +%Y%m%d).tar.gz /path/to/project
+# 更新系统包
+sudo apt update && sudo apt upgrade -y
+
+# 检查磁盘空间
+df -h
 ```
 
-## 联系支持
+## 技术支持
 
-如遇到部署问题，请检查：
-1. 环境要求是否满足
-2. 配置文件是否正确
-3. 网络连接是否正常
-4. 日志文件中的错误信息
+如遇到问题，请按以下步骤排查：
+
+1. 查看相关服务日志
+2. 检查网络连接
+3. 验证配置文件
+4. 查看系统资源使用情况
+5. 参考故障排除章节
 
 ---
 
-**注意**: 本指南基于当前项目结构编写，实际部署时请根据具体环境调整配置参数。
+**注意**: 本部署指南适用于开发和测试环境。生产环境部署需要额外的安全配置和性能优化。

@@ -59,7 +59,7 @@
                 <el-col :span="8">
                   <el-form-item label="题目分类" prop="categoryId">
                     <el-select 
-                      v-model="form.category_id" 
+                      v-model="form.categoryId" 
                       placeholder="请选择分类"
                       style="width: 100%"
                       filterable
@@ -87,6 +87,16 @@
                   </el-form-item>
                 </el-col>
               </el-row>
+
+              <!-- 题目标题 -->
+              <el-form-item label="题目标题" prop="title">
+                <el-input
+                  v-model="form.title"
+                  placeholder="请输入题目标题"
+                  maxlength="200"
+                  show-word-limit
+                />
+              </el-form-item>
 
               <!-- 题目内容 -->
               <el-form-item label="题目内容" prop="content">
@@ -278,17 +288,22 @@ const categories = ref<Array<{ id: number; name: string }>>([])
 // 表单数据
 const form = reactive({
   id: 0,
+  title: '',
   content: '',
   type: 'single' as 'single' | 'multiple' | 'judge' | 'fill',
   difficulty: 'medium' as 'easy' | 'medium' | 'hard',
   options: ['', ''],
   answer: '' as string | string[],
   explanation: '',
-  category_id: ''
+  categoryId: ''
 })
 
 // 表单验证规则
 const rules = {
+  title: [
+    { required: true, message: '请输入题目标题', trigger: 'blur' },
+    { min: 3, message: '题目标题至少3个字符', trigger: 'blur' }
+  ],
   content: [
     { required: true, message: '请输入题目内容', trigger: 'blur' },
     { min: 5, message: '题目内容至少5个字符', trigger: 'blur' }
@@ -299,7 +314,7 @@ const rules = {
   difficulty: [
     { required: true, message: '请选择难度等级', trigger: 'change' }
   ],
-  category_id: [
+  categoryId: [
     { required: true, message: '请选择题目分类', trigger: 'change' }
   ],
   options: [
@@ -363,8 +378,11 @@ const previewQuestion = computed(() => ({
   options: form.options,
   answer: form.answer,
   explanation: form.explanation,
-  category_id: form.category_id,
-  category: categories.value.find(cat => cat.id.toString() === form.category_id.toString()),
+  category_id: form.categoryId,
+  category: {
+    id: form.categoryId,
+    name: categories.value.find(c => c.id.toString() === form.categoryId.toString())?.name || ''
+  },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
 }))
@@ -446,41 +464,95 @@ const handleSave = async () => {
     await formRef.value.validate()
     saving.value = true
     
+    console.log('保存前的表单数据:', form) // 调试日志
+    
     // 处理答案字段的转换
     let correctAnswer = 0
     if (form.type === 'single') {
       // 单选题：将选项标签转换为索引
       const labels = ['A', 'B', 'C', 'D', 'E', 'F']
-      correctAnswer = labels.indexOf(form.answer as string)
+      const answerIndex = labels.indexOf(form.answer as string)
+      if (answerIndex === -1) {
+        ElMessage.error('请选择有效的答案选项')
+        return
+      }
+      correctAnswer = answerIndex
     } else if (form.type === 'multiple') {
       // 多选题：将选项标签数组转换为位掩码
       const labels = ['A', 'B', 'C', 'D', 'E', 'F']
       const answers = form.answer as string[]
+      if (!answers || answers.length === 0) {
+        ElMessage.error('多选题至少需要选择一个正确答案')
+        return
+      }
       let mask = 0
       answers.forEach(ans => {
         const index = labels.indexOf(ans)
-        if (index >= 0) {
+        if (index >= 0 && index < form.options.length) {
           mask |= (1 << index)
         }
       })
       correctAnswer = mask
+      
+      // 验证位掩码是否在有效范围内
+      const maxValidMask = (1 << form.options.length) - 1
+      if (mask > maxValidMask) {
+        ElMessage.error('选择的答案超出了选项范围')
+        return
+      }
     } else if (form.type === 'judge') {
       // 判断题：将true/false转换为索引
+      if (form.answer !== 'true' && form.answer !== 'false') {
+        ElMessage.error('请选择判断题的正确答案')
+        return
+      }
       correctAnswer = form.answer === 'true' ? 0 : 1
     } else if (form.type === 'fill') {
       // 填空题：索引设为0，答案存储在explanation中
+      const fillAnswers = form.answer as string[]
+      if (!fillAnswers || fillAnswers.length === 0 || !fillAnswers.some(ans => ans.trim())) {
+        ElMessage.error('填空题至少需要一个有效答案')
+        return
+      }
       correctAnswer = 0
     }
     
+    // 确保correctAnswer是有效的整数
+    if (!Number.isInteger(correctAnswer) || correctAnswer < 0) {
+      ElMessage.error('答案格式错误')
+      return
+    }
+    
+    // 确保所有必需字段都有值
+    if (!form.title || !form.title.trim()) {
+      ElMessage.error('题目标题不能为空')
+      return
+    }
+    if (!form.content || !form.content.trim()) {
+      ElMessage.error('题目内容不能为空')
+      return
+    }
+    
+    // 验证分类ID
+    if (!form.categoryId || form.categoryId === '') {
+      ElMessage.error('请选择题目分类')
+      return
+    }
+    
     const questionData = {
-      content: form.content,
+      title: form.title.trim(), // 题目标题
+      content: form.content.trim(), // 题目内容
       type: form.type,
       difficulty: form.difficulty,
-      options: (form.type === 'single' || form.type === 'multiple') ? form.options : [],
-      correctAnswer: correctAnswer, // 使用驼峰命名
+      options: (form.type === 'single' || form.type === 'multiple') ? form.options.filter(opt => opt.trim()) : [],
+      correctAnswer: correctAnswer, // 后端期望驼峰命名
       explanation: form.type === 'fill' ? (form.answer as string[])[0] : form.explanation,
-      categoryId: parseInt(form.category_id.toString()) // 使用驼峰命名
+      categoryId: form.categoryId // 后端期望UUID字符串，不需要parseInt
     }
+    
+    console.log('发送到后端的数据:', questionData) // 调试日志
+    console.log('form.title值:', form.title) // 调试title字段
+    console.log('form对象:', form) // 调试整个form对象
     
     await api.put(`/api/v1/admin/questions/${form.id}`, questionData)
     
@@ -514,12 +586,13 @@ const fetchQuestion = async (id: string) => {
     
     // 填充表单数据
     form.id = question.id
-    form.content = question.content
+    form.title = question.title || ''
+    form.content = question.content || ''
     form.type = question.type || 'single'
     form.difficulty = question.difficulty
     form.options = question.options || []
     form.explanation = question.explanation || ''
-    form.category_id = (question.categoryId || question.category_id).toString()
+    form.categoryId = (question.categoryId || question.categoryId).toString()
     
     console.log('设置后的form.type:', form.type) // 调试日志
     console.log('设置后的form.options:', form.options) // 调试日志
@@ -527,11 +600,11 @@ const fetchQuestion = async (id: string) => {
     // 处理答案字段的映射
     if (form.type === 'single') {
       // 单选题：后端correctAnswer是索引，前端需要转换为选项标签
-      const answerIndex = question.correctAnswer || question.correct_answer || 0
+      const answerIndex = question.correctAnswer || question.correctAnswer || 0
       form.answer = getOptionLabel(answerIndex)
     } else if (form.type === 'multiple') {
       // 多选题：后端correctAnswer是位掩码，前端需要转换为选项标签数组
-      const answerMask = question.correctAnswer || question.correct_answer || 0
+      const answerMask = question.correctAnswer || question.correctAnswer || 0
       const answerLabels = []
       for (let i = 0; i < form.options.length; i++) {
         if (answerMask & (1 << i)) {
@@ -541,7 +614,7 @@ const fetchQuestion = async (id: string) => {
       form.answer = answerLabels
     } else if (form.type === 'judge') {
       // 判断题：后端correctAnswer是索引（0=正确，1=错误）
-      const answerIndex = question.correctAnswer || question.correct_answer || 0
+      const answerIndex = question.correctAnswer || question.correctAnswer || 0
       form.answer = answerIndex === 0 ? 'true' : 'false'
     } else if (form.type === 'fill') {
       // 填空题：使用explanation字段存储答案

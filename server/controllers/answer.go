@@ -239,7 +239,7 @@ func GetAnswerStatistics(c *gin.Context) {
 }
 
 // addToMistakeBook 添加到错题本
-func addToMistakeBook(db *gorm.DB, userID, questionID uuid.UUID) {
+func addToMistakeBook(db *gorm.DB, userID uint, questionID uuid.UUID) {
 	var existing models.MistakeBook
 	result := db.Where("user_id = ? AND question_id = ?", userID, questionID).First(&existing)
 	if result.Error != nil {
@@ -253,7 +253,7 @@ func addToMistakeBook(db *gorm.DB, userID, questionID uuid.UUID) {
 }
 
 // removeFromMistakeBook 从错题本移除
-func removeFromMistakeBook(db *gorm.DB, userID, questionID uuid.UUID) {
+func removeFromMistakeBook(db *gorm.DB, userID uint, questionID uuid.UUID) {
 	db.Where("user_id = ? AND question_id = ?", userID, questionID).Delete(&models.MistakeBook{})
 }
 

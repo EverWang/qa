@@ -258,7 +258,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const categoryId = computed(() => route.params.id ? parseInt(route.params.id as string) : null)
+const categoryId = computed(() => route.params.id ? route.params.id as string : null)
 
 const currentCategory = ref<CategoryWithIcon | null>(null)
 const subCategories = ref<CategoryWithIcon[]>([])
@@ -441,8 +441,14 @@ const goToCategory = (id?: number) => {
   }
 }
 
-const goToQuestion = (questionId: number) => {
-  router.push(`/question/${questionId}`)
+const goToQuestion = (questionId: number | string) => {
+  console.log('CategoryList.goToQuestion 跳转到题目详情:', questionId)
+  // 确保questionId是有效的
+  if (questionId) {
+    router.push(`/question/${questionId}`)
+  } else {
+    console.error('CategoryList.goToQuestion 无效的题目ID:', questionId)
+  }
 }
 
 // 加载更多
@@ -456,10 +462,11 @@ const loadMore = async () => {
     let moreQuestions: Question[] = []
     if (categoryId.value) {
       // 加载特定分类的题目
+      const categoryIdNum = typeof categoryId.value === 'string' ? parseInt(categoryId.value) : categoryId.value
       const response = await QuestionService.getQuestions({
           page: page.value,
           pageSize: 10,
-          categoryId: categoryId.value
+          categoryId: categoryIdNum
         })
       if (response.success) {
           moreQuestions = response.data.items
@@ -486,9 +493,10 @@ const loadMore = async () => {
 }
 
 // 构建面包屑导航
-const buildBreadcrumbs = (categoryId: number) => {
+const buildBreadcrumbs = (categoryId: string | number) => {
   const breadcrumbs: CategoryWithIcon[] = []
-  let current = allCategories.value.find(c => c.id === categoryId)
+  const categoryIdNum = typeof categoryId === 'string' ? parseInt(categoryId) : categoryId
+  let current = allCategories.value.find(c => c.id === categoryIdNum)
   
   while (current) {
     breadcrumbs.unshift(current)
@@ -503,7 +511,7 @@ const buildBreadcrumbs = (categoryId: number) => {
 }
 
 // 加载分类数据
-const loadCategoryData = async (id?: number) => {
+const loadCategoryData = async (id?: string | number) => {
   try {
     console.log('CategoryList.loadCategoryData 开始加载，分类ID:', id)
     isLoading.value = true
@@ -521,8 +529,10 @@ const loadCategoryData = async (id?: number) => {
     
     if (id) {
       console.log('CategoryList.loadCategoryData 加载特定分类:', id)
+      const categoryIdNum = typeof id === 'string' ? parseInt(id) : id
+      
       // 加载特定分类 - 从已加载的分类中查找
-      const foundCategory = allCategories.value.find(c => c.id === id)
+      const foundCategory = allCategories.value.find(c => c.id === categoryIdNum)
       if (foundCategory) {
         currentCategory.value = foundCategory
         console.log('CategoryList.loadCategoryData 找到当前分类:', currentCategory.value)
@@ -541,9 +551,9 @@ const loadCategoryData = async (id?: number) => {
       }
       
       // 获取子分类
-      subCategories.value = allCategories.value.filter(c => c.parentId === id)
+      subCategories.value = allCategories.value.filter(c => c.parentId === categoryIdNum)
       console.log('CategoryList.loadCategoryData 子分类:', subCategories.value)
-      breadcrumbs.value = buildBreadcrumbs(id)
+      breadcrumbs.value = buildBreadcrumbs(categoryIdNum)
       console.log('CategoryList.loadCategoryData 面包屑:', breadcrumbs.value)
       
       // 加载用户进度
@@ -569,7 +579,7 @@ const loadCategoryData = async (id?: number) => {
       const questionsResponse = await QuestionService.getQuestions({
         page: 1,
         pageSize: 10,
-        categoryId: id
+        categoryId: categoryIdNum
       })
       console.log('CategoryList.loadCategoryData 题目响应:', questionsResponse)
       if (questionsResponse.success) {
@@ -623,7 +633,7 @@ const loadCategoryData = async (id?: number) => {
 
 // 监听路由变化
 watch(() => route.params.id, (newId) => {
-  const id = newId ? parseInt(newId as string) : undefined
+  const id = newId ? newId as string : undefined
   loadCategoryData(id)
 }, { immediate: true })
 

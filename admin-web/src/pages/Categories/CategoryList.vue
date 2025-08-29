@@ -111,14 +111,14 @@
           <el-table-column prop="questionCount" label="题目数量" width="100" align="center">
             <template #default="{ row }">
               <el-tag type="success" size="small">
-                {{ row.question_count || 0 }}
+                {{ row.questionCount || 0 }}
               </el-tag>
             </template>
           </el-table-column>
           
           <el-table-column prop="sortOrder" label="排序" width="80" align="center">
             <template #default="{ row }">
-              <span class="sort-order">{{ row.sort_order }}</span>
+              <span class="sort-order">{{ row.sortOrder }}</span>
             </template>
           </el-table-column>
           
@@ -135,7 +135,7 @@
           
           <el-table-column prop="createdAt" label="创建时间" width="160">
             <template #default="{ row }">
-              <span>{{ formatDate(row.created_at) }}</span>
+              <span>{{ formatDate(row.createdAt) }}</span>
             </template>
           </el-table-column>
           
@@ -159,7 +159,7 @@
                   type="danger" 
                   text 
                   @click="handleDelete(row)"
-                  :disabled="row.question_count > 0"
+                  :disabled="row.questionCount > 0"
                 >
                   <el-icon><Delete /></el-icon>
                   删除
@@ -197,7 +197,7 @@
         
         <el-form-item label="上级分类" prop="parentId">
           <el-select
-            v-model="form.parent_id"
+            v-model="form.parentId"
             placeholder="请选择上级分类（可选）"
             clearable
             style="width: 100%"
@@ -225,7 +225,7 @@
         
         <el-form-item label="排序权重" prop="sortOrder">
           <el-input-number
-            v-model="form.sort_order"
+            v-model="form.sortOrder"
             :min="0"
             :max="9999"
             placeholder="数值越大排序越靠前"
@@ -278,15 +278,15 @@ interface Category {
   id: number
   name: string
   description?: string
-  parent_id?: number
+  parentId?: number
   level: number
-  sort_order: number
+  sortOrder: number
   status: number // 1-启用 0-禁用
-  question_count: number
+  questionCount: number
   children?: Category[]
   hasChildren?: boolean
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 // 响应式数据
@@ -312,8 +312,8 @@ const form = reactive({
   id: 0,
   name: '',
   description: '',
-  parent_id: null as number | null,
-  sort_order: 0,
+  parentId: null as number | null,
+  sortOrder: 0,
   status: 1 // 1-启用 0-禁用
 })
 
@@ -323,7 +323,7 @@ const rules = {
     { required: true, message: '请输入分类名称', trigger: 'blur' },
     { min: 2, max: 50, message: '分类名称长度在 2 到 50 个字符', trigger: 'blur' }
   ],
-  sort_order: [
+  sortOrder: [
     { required: true, message: '请输入排序权重', trigger: 'blur' }
   ]
 }
@@ -347,7 +347,7 @@ const handleCreate = () => {
 
 const handleAddChild = (parent: Category) => {
   resetForm()
-  form.parent_id = parent.id
+  form.parentId = parent.id
   isEdit.value = false
   dialogVisible.value = true
 }
@@ -356,15 +356,15 @@ const handleEdit = (row: Category) => {
   form.id = row.id
   form.name = row.name
   form.description = row.description || ''
-  form.parent_id = row.parent_id || null
-  form.sort_order = row.sort_order
+  form.parentId = row.parentId || null
+  form.sortOrder = row.sortOrder
   form.status = row.status
   isEdit.value = true
   dialogVisible.value = true
 }
 
 const handleDelete = async (row: Category) => {
-  if (row.question_count > 0) {
+  if (row.questionCount > 0) {
     ElMessage.warning('该分类下还有题目，无法删除')
     return
   }
@@ -465,8 +465,8 @@ const handleSubmit = async () => {
     const categoryData = {
       name: form.name,
       description: form.description || undefined,
-      parent_id: form.parent_id || undefined,
-      sort_order: form.sort_order,
+      parentId: form.parentId || undefined, // 后端期望驼峰命名
+      sortOrder: form.sortOrder, // 后端期望驼峰命名
       status: form.status
     }
     
@@ -492,8 +492,8 @@ const resetForm = () => {
   form.id = 0
   form.name = ''
   form.description = ''
-  form.parent_id = null
-  form.sort_order = 0
+  form.parentId = null
+  form.sortOrder = 0
   form.status = 1 // 1-启用
   
   if (formRef.value) {

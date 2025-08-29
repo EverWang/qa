@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "cd miniprogram && npm install && npm run build",
-  "outputDirectory": "miniprogram/dist",
-  "installCommand": "cd miniprogram && npm install",
-  "framework": "vite",
-  "regions": ["hkg1"]
-}
