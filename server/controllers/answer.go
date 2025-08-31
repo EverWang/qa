@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	
 	"gorm.io/gorm"
 )
 
 // SubmitAnswerRequest 提交答案请求
 type SubmitAnswerRequest struct {
-	QuestionID uuid.UUID `json:"questionId" binding:"required"`
+	QuestionID uint `json:"questionId" binding:"required"`
 	UserAnswer int       `json:"userAnswer" binding:"min=0"`
 	TimeSpent  int       `json:"timeSpent" binding:"min=0"`
 }
@@ -32,7 +32,7 @@ type AnswerStatistics struct {
 
 // CategoryStatistics 分类统计
 type CategoryStatistics struct {
-	CategoryID      uuid.UUID `json:"categoryId"`
+	CategoryID      uint `json:"categoryId"`
 	CategoryName    string    `json:"categoryName"`
 	TotalAnswered   int64     `json:"totalAnswered"`
 	CorrectAnswered int64     `json:"correctAnswered"`
@@ -239,7 +239,7 @@ func GetAnswerStatistics(c *gin.Context) {
 }
 
 // addToMistakeBook 添加到错题本
-func addToMistakeBook(db *gorm.DB, userID uint, questionID uuid.UUID) {
+func addToMistakeBook(db *gorm.DB, userID uint, questionID uint) {
 	var existing models.MistakeBook
 	result := db.Where("user_id = ? AND question_id = ?", userID, questionID).First(&existing)
 	if result.Error != nil {
@@ -253,7 +253,7 @@ func addToMistakeBook(db *gorm.DB, userID uint, questionID uuid.UUID) {
 }
 
 // removeFromMistakeBook 从错题本移除
-func removeFromMistakeBook(db *gorm.DB, userID uint, questionID uuid.UUID) {
+func removeFromMistakeBook(db *gorm.DB, userID uint, questionID uint) {
 	db.Where("user_id = ? AND question_id = ?", userID, questionID).Delete(&models.MistakeBook{})
 }
 
@@ -299,7 +299,7 @@ func GetCategoryProgress(c *gin.Context) {
 	}
 
 	// 如果没有答题记录，设置默认值
-	if progress.CategoryID == uuid.Nil {
+	if progress.CategoryID == 0 {
 		// 获取分类信息
 		var category models.Category
 		if err := db.Where("id = ?", categoryID).First(&category).Error; err != nil {

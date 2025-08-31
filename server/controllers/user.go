@@ -346,7 +346,7 @@ func CreateUser(c *gin.Context) {
 
 	// 创建用户
 	user := models.User{
-		OpenID:     nil, // 管理员创建的用户不设置OpenID
+		OpenID:     fmt.Sprintf("admin_created_%s", req.Username), // 管理员创建的用户不设置OpenID
 		Username:   req.Username,
 		Email:      req.Email,
 		Password:   hashedPassword,

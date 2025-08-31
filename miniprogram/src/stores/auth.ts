@@ -140,10 +140,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 退出登录
   const logout = async () => {
     try {
-      // 调用后端登出接口
-      if (token.value && !isGuest.value) {
-        await authService.logout()
-      }
+      
     } catch (error) {
       console.error('登出请求失败:', error)
     } finally {

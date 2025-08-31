@@ -5,7 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
+	
 )
 
 // User 用户模型 - 使用MySQL数据库
@@ -89,6 +89,9 @@ type Question struct {
 	Difficulty    string    `json:"difficulty" gorm:"type:varchar(20);default:'medium'"`
 	CategoryID    uint      `json:"categoryId" gorm:"not null;index"`
 	CreatorID     *uint     `json:"creatorId" gorm:"index"`
+	TotalAnswered int       `json:"totalAnswered" gorm:"default:0"`
+	TotalCorrect  int       `json:"totalCorrect" gorm:"default:0"`
+	AccuracyRate  float64   `json:"accuracyRate" gorm:"type:decimal(5,2);default:0.00"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 	

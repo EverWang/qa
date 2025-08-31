@@ -7,14 +7,14 @@ import (
 	"qaminiprogram/models"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	
 	"gorm.io/gorm"
 )
 
 // CreateCategoryRequest 创建分类请求
 type CreateCategoryRequest struct {
 	Name     string     `json:"name" binding:"required"`
-	ParentID *uuid.UUID `json:"parentId"`
+	ParentID *uint `json:"parentId"`
 	Level    int        `json:"level"`
 	Sort     int        `json:"sort"`
 }
@@ -23,7 +23,7 @@ type CreateCategoryRequest struct {
 type UpdateCategoryRequest struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
-	ParentID    *uuid.UUID `json:"parentId"`
+	ParentID    *uint `json:"parentId"`
 	Level       *int       `json:"level"`
 	SortOrder   *int       `json:"sortOrder"`
 	Status      *int       `json:"status"`
@@ -431,7 +431,7 @@ func buildCategoryTreeWithFilter(db *gorm.DB, search, status string) ([]Category
 	}
 
 	// 使用指针映射来确保修改能够正确反映
-	categoryMap := make(map[uuid.UUID]*CategoryTreeNode)
+	categoryMap := make(map[uint]*CategoryTreeNode)
 	var allNodes []*CategoryTreeNode
 	
 	// 创建所有节点

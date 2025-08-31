@@ -90,12 +90,12 @@ export class AuthService {
 
   // 获取当前用户信息
   static async getCurrentUser(): Promise<ApiResponse<User>> {
-    return apiClient.get<User>('/api/v1/auth/me')
+    return apiClient.get<User>('/api/v1/user/profile')
   }
 
   // 更新用户信息
   static async updateProfile(data: Partial<User>): Promise<ApiResponse<User>> {
-    return apiClient.put<User>('/api/v1/auth/profile', data)
+    return apiClient.put<User>('/api/v1/user/profile', data)
   }
 
   // 修改密码

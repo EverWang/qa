@@ -1,344 +1,154 @@
--- 刷刷题数据库初始化脚本
--- 创建数据库和表结构，插入初始数据
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 
--- 创建数据库（如果不存在）
+-- 刷刷题数据库初始化脚本 (修正版)
+-- 基于 models.go 结构生成
+
 CREATE DATABASE IF NOT EXISTS shuashuati DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE shuashuati;
 
--- 用户表
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    openid VARCHAR(100) NOT NULL UNIQUE COMMENT '微信OpenID',
-    nickname VARCHAR(100) DEFAULT '' COMMENT '用户昵称',
-    avatar VARCHAR(500) DEFAULT '' COMMENT '头像URL',
-    role ENUM('user', 'admin') DEFAULT 'user' COMMENT '用户角色',
-    total_answered INT DEFAULT 0 COMMENT '总答题数',
-    total_correct INT DEFAULT 0 COMMENT '总正确数',
-    accuracy_rate DECIMAL(5,2) DEFAULT 0.00 COMMENT '正确率',
-    last_active_time TIMESTAMP NULL COMMENT '最后活跃时间',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_openid (openid),
-    INDEX idx_role (role),
-    INDEX idx_last_active (last_active_time)
+-- 用户表 (统一用户和管理员)
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `open_id` VARCHAR(100) UNIQUE NOT NULL, -- Changed from openid to open_id
+    `username` VARCHAR(50),
+    `email` VARCHAR(100),
+    `password` VARCHAR(255),
+    `nickname` VARCHAR(100) DEFAULT '',
+    `avatar` VARCHAR(500) DEFAULT '',
+    `role` ENUM('user','admin') DEFAULT 'user',
+    `status` VARCHAR(20) DEFAULT 'active',
+    `is_verified` BOOLEAN DEFAULT false,
+    `is_guest` BOOLEAN DEFAULT false,
+    `total_answered` INT DEFAULT 0,
+    `total_correct` INT DEFAULT 0,
+    `accuracy_rate` DECIMAL(5,2) DEFAULT 0.00,
+    `last_active_time` TIMESTAMP NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
+-- 管理员模型 (Added based on models.go)
+CREATE TABLE IF NOT EXISTS `admins` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(50) UNIQUE NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `email` VARCHAR(100),
+    `role` VARCHAR(20) DEFAULT 'admin',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员模型';
+
 -- 分类表
-CREATE TABLE IF NOT EXISTS categories (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL COMMENT '分类名称',
-    parent_id BIGINT NULL COMMENT '父分类ID',
-    level INT DEFAULT 1 COMMENT '分类层级',
-    sort INT DEFAULT 0 COMMENT '排序权重',
-    question_count INT DEFAULT 0 COMMENT '题目数量',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_parent_id (parent_id),
-    INDEX idx_level (level),
-    INDEX idx_sort (sort),
-    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+CREATE TABLE IF NOT EXISTS `categories` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `description` VARCHAR(255),
+    `parent_id` BIGINT UNSIGNED,
+    `level` INT DEFAULT 1,
+    `sort` INT DEFAULT 0,
+    `status` INT DEFAULT 1 COMMENT '状态 1-启用 0-禁用',
+    `question_count` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`parent_id`) REFERENCES `categories`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='分类表';
 
 -- 题目表
-CREATE TABLE IF NOT EXISTS questions (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(500) NOT NULL COMMENT '题目标题',
-    content TEXT NOT NULL COMMENT '题目内容',
-    options JSON NOT NULL COMMENT '选项数组',
-    correct_answer INT NOT NULL COMMENT '正确答案索引',
-    explanation TEXT COMMENT '答案解析',
-    difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'medium' COMMENT '难度等级',
-    category_id BIGINT NOT NULL COMMENT '分类ID',
-    total_answered INT DEFAULT 0 COMMENT '总答题次数',
-    total_correct INT DEFAULT 0 COMMENT '总正确次数',
-    accuracy_rate DECIMAL(5,2) DEFAULT 0.00 COMMENT '正确率',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_category_id (category_id),
-    INDEX idx_difficulty (difficulty),
-    INDEX idx_accuracy_rate (accuracy_rate),
-    INDEX idx_total_answered (total_answered),
-    FULLTEXT idx_title_content (title, content),
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS `questions` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(500) NOT NULL,
+    `content` TEXT NOT NULL,
+    `type` VARCHAR(20) DEFAULT 'single',
+    `options` JSON NOT NULL,
+    `correct_answer` INT NOT NULL,
+    `explanation` TEXT,
+    `difficulty` VARCHAR(20) DEFAULT 'medium',
+    `category_id` BIGINT UNSIGNED NOT NULL,
+    `creator_id` BIGINT UNSIGNED,
+    `total_answered` INT DEFAULT 0,
+    `total_correct` INT DEFAULT 0,
+    `accuracy_rate` DECIMAL(5,2) DEFAULT 0.00,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`creator_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='题目表';
 
 -- 答题记录表
-CREATE TABLE IF NOT EXISTS answer_records (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    question_id BIGINT NOT NULL COMMENT '题目ID',
-    user_answer INT NOT NULL COMMENT '用户答案',
-    is_correct BOOLEAN NOT NULL COMMENT '是否正确',
-    time_spent INT DEFAULT 0 COMMENT '答题耗时(秒)',
-    answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '答题时间',
-    INDEX idx_user_id (user_id),
-    INDEX idx_question_id (question_id),
-    INDEX idx_is_correct (is_correct),
-    INDEX idx_answered_at (answered_at),
-    INDEX idx_user_question (user_id, question_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS `answer_records` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `question_id` BIGINT UNSIGNED NOT NULL,
+    `user_answer` INT NOT NULL,
+    `is_correct` BOOLEAN NOT NULL,
+    `time_spent` INT DEFAULT 0,
+    `answered_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Reverted to original
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Added created_at
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Added updated_at
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='答题记录表';
 
 -- 错题本表
-CREATE TABLE IF NOT EXISTS mistake_books (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    question_id BIGINT NOT NULL COMMENT '题目ID',
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
-    UNIQUE KEY uk_user_question (user_id, question_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_question_id (question_id),
-    INDEX idx_added_at (added_at),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS `mistake_books` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `question_id` BIGINT UNSIGNED NOT NULL,
+    `is_mastered` BOOLEAN DEFAULT false,
+    `added_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Added created_at
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Added updated_at
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='错题本表';
 
+-- 操作日志表
+CREATE TABLE IF NOT EXISTS `operation_logs` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `operator` VARCHAR(50) NOT NULL,
+    `action` VARCHAR(20) NOT NULL,
+    `resource` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255),
+    `ip` VARCHAR(45),
+    `user_agent` VARCHAR(500),
+    `request_data` TEXT,
+    `response_data` TEXT,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志表';
+
+-- 系统设置表
+CREATE TABLE IF NOT EXISTS `system_settings` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `key` VARCHAR(255) UNIQUE NOT NULL COMMENT '设置键名',
+    `value` TEXT COMMENT '设置值(JSON格式)',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置表';
+
+-- 插入默认管理员账号
+-- 密码是 123456 的 bcrypt 哈希值
+INSERT INTO `users` (`open_id`, `username`, `password`, `nickname`, `role`, `is_verified`) VALUES
+('admin_unique_openid_123', 'admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '系统管理员', 'admin', true);
+
+-- 插入测试用户
+INSERT INTO `users` (`open_id`, `username`, `password`, `nickname`, `role`, `is_verified`) VALUES
+('testuser_unique_openid_456', 'testuser', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '测试用户', 'user', true);
+
 -- 插入初始分类数据
-INSERT INTO categories (id, name, parent_id, level, sort) VALUES
-(1, '道路交通安全法律、法规', NULL, 1, 1),
-(2, '交通信号', NULL, 1, 2),
-(3, '安全行车、文明驾驶基础知识', NULL, 1, 3),
-(4, '机动车驾驶操作相关基础知识', NULL, 1, 4),
-(5, '道路交通安全法律、法规和规章', 1, 2, 1),
-(6, '地方性法规', 1, 2, 2),
-(7, '道路交通信号灯', 2, 2, 1),
-(8, '道路交通标志', 2, 2, 2),
-(9, '道路交通标线', 2, 2, 3),
-(10, '交通警察手势', 2, 2, 4),
-(11, '安全行车常识', 3, 2, 1),
-(12, '文明驾驶常识', 3, 2, 2),
-(13, '机动车构造常识', 4, 2, 1),
-(14, '机动车检验常识', 4, 2, 2);
+INSERT INTO `categories` (`id`, `name`, `parent_id`, `level`, `sort`, `description`) VALUES
+(1, '道路交通安全法律、法规', NULL, 1, 1, '关于交通法规的题目'),
+(2, '交通信号', NULL, 1, 2, '关于交通信号灯、标志、标线的题目'),
+(3, '安全行车、文明驾驶基础知识', NULL, 1, 3, '关于安全驾驶和文明驾驶的题目'),
+(4, '机动车驾驶操作相关基础知识', NULL, 1, 4, '关于驾驶操作和车辆基础知识的题目');
 
--- 更新分类的题目数量（初始为0）
-UPDATE categories SET question_count = 0;
-
--- 管理员表
-CREATE TABLE IF NOT EXISTS admins (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
-    password_hash VARCHAR(255) NOT NULL COMMENT '密码哈希',
-    email VARCHAR(100) DEFAULT '' COMMENT '邮箱',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_username (username)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员表';
-
--- 插入默认管理员账号（用户名：admin，密码：123456）
--- 密码哈希是 123456 的 bcrypt 哈希值
-INSERT INTO admins (username, password_hash, email, created_at) VALUES
-('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@example.com', NOW());
-
--- 插入管理员用户到users表（用于微信登录）
-INSERT INTO users (openid, nickname, avatar, role, created_at) VALUES
-('admin_openid_123456', '系统管理员', '', 'admin', NOW());
-
--- 插入示例题目数据
-INSERT INTO questions (title, content, options, correct_answer, explanation, difficulty, category_id) VALUES
-('机动车驾驶人违法驾驶造成重大交通事故构成犯罪的，依法追究什么责任？', 
- '机动车驾驶人违法驾驶造成重大交通事故构成犯罪的，依法追究什么责任？', 
- '["民事责任", "经济责任", "刑事责任", "直接责任"]', 
- 2, 
- '根据《道路交通安全法》规定，违法驾驶造成重大交通事故构成犯罪的，依法追究刑事责任。', 
- 'easy', 
- 5),
-
-('驾驶机动车在道路上违反道路交通安全法的行为，属于什么行为？', 
- '驾驶机动车在道路上违反道路交通安全法的行为，属于什么行为？', 
- '["违章行为", "违法行为", "过失行为", "违规行为"]', 
- 1, 
- '违反道路交通安全法的行为属于违法行为，应当承担相应的法律责任。', 
- 'easy', 
- 5),
-
-('机动车驾驶证有效期满换证时，需要提交什么？', 
- '机动车驾驶证有效期满换证时，需要提交什么？', 
- '["机动车登记证书", "机动车保险单", "身体条件证明", "机动车技术检验合格证明"]', 
- 2, 
- '驾驶证有效期满换证时，需要提交身体条件证明，确保驾驶人身体状况符合驾驶要求。', 
- 'medium', 
- 5),
-
-('这个标志是何含义？', 
- '这个标志是何含义？（假设显示禁止通行标志）', 
- '["禁止通行", "禁止驶入", "禁止车辆临时停放", "禁止车辆长时停放"]', 
- 0, 
- '红色圆形标志表示禁止通行，任何车辆和行人都不得通过。', 
- 'easy', 
- 8),
-
-('这个标志是何含义？', 
- '这个标志是何含义？（假设显示限速标志）', 
- '["最低限速60公里/小时", "最高限速60公里/小时", "解除限速60公里/小时", "建议速度60公里/小时"]', 
- 1, 
- '圆形标志内显示数字表示最高限速，此标志表示最高限速60公里/小时。', 
- 'medium', 
- 8),
-
-('在冰雪道路上行车时，车辆的稳定性降低，加速过急时车轮极易空转或溜滑。', 
- '在冰雪道路上行车时，车辆的稳定性降低，加速过急时车轮极易空转或溜滑。', 
- '["正确", "错误"]', 
- 0, 
- '在冰雪道路上，路面摩擦力减小，车辆稳定性确实会降低，加速过急容易导致车轮空转或溜滑。', 
- 'easy', 
- 11),
-
-('驾驶机动车在雾天行车开启雾灯和危险报警闪光灯。', 
- '驾驶机动车在雾天行车开启雾灯和危险报警闪光灯。', 
- '["正确", "错误"]', 
- 0, 
- '雾天行车应当开启雾灯和危险报警闪光灯，提高车辆的可见性，确保行车安全。', 
- 'easy', 
- 11),
-
-('机动车仪表板上（如图所示）亮表示什么？', 
- '机动车仪表板上（如图所示）亮表示什么？（假设显示发动机故障灯）', 
- '["发动机故障", "燃油不足", "充电故障", "冷却液不足"]', 
- 0, 
- '发动机故障指示灯亮起表示发动机系统出现故障，应及时检修。', 
- 'medium', 
- 13),
-
-('机动车在高速公路上发生故障时，在来车方向50至100米处设置警告标志。', 
- '机动车在高速公路上发生故障时，在来车方向50至100米处设置警告标志。', 
- '["正确", "错误"]', 
- 1, 
- '在高速公路上发生故障时，应在来车方向150米以外设置警告标志，而不是50至100米。', 
- 'hard', 
- 11),
-
-('申请机动车驾驶证的人，应当符合国务院公安部门规定的驾驶许可条件。', 
- '申请机动车驾驶证的人，应当符合国务院公安部门规定的驾驶许可条件。', 
- '["正确", "错误"]', 
- 0, 
- '根据《道路交通安全法》规定，申请驾驶证的人应当符合国务院公安部门规定的驾驶许可条件。', 
- 'easy', 
- 5);
-
--- 更新分类的题目数量
-UPDATE categories c SET question_count = (
-    SELECT COUNT(*) FROM questions q WHERE q.category_id = c.id
-);
-
--- 创建触发器：插入题目时更新分类题目数量
-DELIMITER //
-CREATE TRIGGER tr_questions_insert_update_category_count
-AFTER INSERT ON questions
-FOR EACH ROW
-BEGIN
-    UPDATE categories SET question_count = question_count + 1 WHERE id = NEW.category_id;
-END//
-
--- 创建触发器：删除题目时更新分类题目数量
-CREATE TRIGGER tr_questions_delete_update_category_count
-AFTER DELETE ON questions
-FOR EACH ROW
-BEGIN
-    UPDATE categories SET question_count = question_count - 1 WHERE id = OLD.category_id;
-END//
-
--- 创建触发器：更新题目分类时更新分类题目数量
-CREATE TRIGGER tr_questions_update_category_count
-AFTER UPDATE ON questions
-FOR EACH ROW
-BEGIN
-    IF OLD.category_id != NEW.category_id THEN
-        UPDATE categories SET question_count = question_count - 1 WHERE id = OLD.category_id;
-        UPDATE categories SET question_count = question_count + 1 WHERE id = NEW.category_id;
-    END IF;
-END//
-
--- 创建触发器：插入答题记录时更新题目和用户统计
-CREATE TRIGGER tr_answer_records_insert_update_stats
-AFTER INSERT ON answer_records
-FOR EACH ROW
-BEGIN
-    -- 更新题目统计
-    UPDATE questions SET 
-        total_answered = total_answered + 1,
-        total_correct = total_correct + IF(NEW.is_correct, 1, 0),
-        accuracy_rate = ROUND((total_correct + IF(NEW.is_correct, 1, 0)) * 100.0 / (total_answered + 1), 2)
-    WHERE id = NEW.question_id;
-    
-    -- 更新用户统计
-    UPDATE users SET 
-        total_answered = total_answered + 1,
-        total_correct = total_correct + IF(NEW.is_correct, 1, 0),
-        accuracy_rate = ROUND((total_correct + IF(NEW.is_correct, 1, 0)) * 100.0 / (total_answered + 1), 2),
-        last_active_time = NEW.answered_at
-    WHERE id = NEW.user_id;
-END//
-
-DELIMITER ;
-
--- 创建视图：用户答题统计视图
-CREATE VIEW v_user_answer_stats AS
-SELECT 
-    u.id,
-    u.openid,
-    u.nickname,
-    u.avatar,
-    u.total_answered,
-    u.total_correct,
-    u.accuracy_rate,
-    u.last_active_time,
-    COUNT(DISTINCT ar.question_id) as unique_questions_answered,
-    COUNT(mb.id) as mistake_count,
-    DATE(u.created_at) as join_date
-FROM users u
-LEFT JOIN answer_records ar ON u.id = ar.user_id
-LEFT JOIN mistake_books mb ON u.id = mb.user_id
-WHERE u.role = 'user'
-GROUP BY u.id;
-
--- 创建视图：题目答题统计视图
-CREATE VIEW v_question_answer_stats AS
-SELECT 
-    q.id,
-    q.title,
-    q.difficulty,
-    q.category_id,
-    c.name as category_name,
-    q.total_answered,
-    q.total_correct,
-    q.accuracy_rate,
-    COUNT(mb.id) as mistake_count,
-    q.created_at
-FROM questions q
-LEFT JOIN categories c ON q.category_id = c.id
-LEFT JOIN mistake_books mb ON q.id = mb.question_id
-GROUP BY q.id;
-
--- 创建视图：分类统计视图
-CREATE VIEW v_category_stats AS
-SELECT 
-    c.id,
-    c.name,
-    c.parent_id,
-    c.level,
-    c.question_count,
-    COALESCE(SUM(q.total_answered), 0) as total_answered,
-    COALESCE(SUM(q.total_correct), 0) as total_correct,
-    CASE 
-        WHEN SUM(q.total_answered) > 0 THEN ROUND(SUM(q.total_correct) * 100.0 / SUM(q.total_answered), 2)
-        ELSE 0.00
-    END as accuracy_rate
-FROM categories c
-LEFT JOIN questions q ON c.id = q.category_id
-GROUP BY c.id;
-
--- 插入一些示例答题记录（可选）
--- INSERT INTO answer_records (user_id, question_id, user_answer, is_correct, time_spent) VALUES
--- (1, 1, 2, true, 15),
--- (1, 2, 1, true, 20),
--- (1, 3, 0, false, 25);
-
--- 创建索引优化查询性能
-CREATE INDEX idx_answer_records_user_answered_at ON answer_records(user_id, answered_at);
-CREATE INDEX idx_answer_records_question_answered_at ON answer_records(question_id, answered_at);
-CREATE INDEX idx_users_role_last_active ON users(role, last_active_time);
-CREATE INDEX idx_questions_category_difficulty ON questions(category_id, difficulty);
-
--- 数据库初始化完成
+-- 插入测试题目数据
+INSERT INTO `questions` (`title`, `content`, `type`, `options`, `correct_answer`, `explanation`, `difficulty`, `category_id`, `creator_id`) VALUES
+('以下哪项不是交通信号灯的颜色？', '交通信号灯通常由红、黄、绿三种颜色组成。', 'single', '["红色", "蓝色", "黄色", "绿色"]', 1, '交通信号灯没有蓝色。', 'easy', 2, NULL),
+('在没有交通信号灯的路口，车辆应该如何通行？', '在没有交通信号灯的路口，车辆应遵守交通标志、标线，并注意避让行人。', 'single', '["加速通过", "鸣笛示意", "减速慢行，注意观察", "随意通行"]', 2, '在没有交通信号灯的路口，应减速慢行，注意观察，确保安全。', 'medium', 1, NULL),
+('驾驶机动车在高速公路上行驶，遇到雾、雨、雪、沙尘、冰雹等低能见度气象条件时，应当如何操作？', '在高速公路低能见度条件下行驶，应降低车速，保持安全距离，并开启相关灯光。', 'single', '["开启远光灯", "开启危险报警闪光灯", "开启示廓灯和前后位灯", "开启雾灯、近光灯、示廓灯和前后位灯"]', 3, '在低能见度条件下，应开启雾灯、近光灯、示廓灯和前后位灯，并降低车速。', 'hard', 3, NULL),
+('以下哪种行为属于文明驾驶？', '文明驾驶是驾驶员应具备的基本素质。', 'single', '["随意变道", "超速行驶", "礼让行人", "酒后驾车"]', 2, '礼让行人是文明驾驶的重要体现。', 'easy', 3, NULL),
+('机动车驾驶人在道路上发生交通事故，造成人身伤亡的，应当立即抢救受伤人员，并迅速报告公安机关交通管理部门。对吗？', '交通事故处理的基本原则。', 'single', '["对", "错"]', 0, '发生交通事故，造成人身伤亡的，应立即抢救受伤人员，并迅速报告公安机关交通管理部门。', 'medium', 1, NULL),
+('驾驶机动车通过没有交通信号灯控制也没有交通警察指挥的交叉路口，相对方向行驶的右转弯的机动车让左转弯的机动车先行。对吗？', '交叉路口通行规则。', 'single', '["对", "错"]', 1, '相对方向行驶的右转弯的机动车应让左转弯的机动车先行。', 'hard', 1, NULL),
+('以下哪项是驾驶机动车时禁止的行为？', '驾驶机动车时应遵守交通法规。', 'single', '["系安全带", "使用手机", "开启转向灯", "保持安全距离"]', 1, '驾驶机动车时禁止使用手机。', 'easy', 3, NULL),
+('在高速公路上行驶，车速超过规定时速50%的，公安机关交通管理部门可以吊销机动车驾驶证。对吗？', '超速行驶的处罚。', 'single', '["对", "错"]', 0, '在高速公路上行驶，车速超过规定时速50%的，可以吊销机动车驾驶证。', 'medium', 1, NULL),
+('以下哪种情况可以不避让正在执行紧急任务的警车？', '特种车辆的避让原则。', 'single', '["在非机动车道行驶", "在高速公路行驶", "在同方向只有一条机动车道的道路上行驶", "在执行紧急任务的警车前方行驶"]', 2, '在同方向只有一条机动车道的道路上，可以不避让正在执行紧急任务的警车。', 'hard', 1, NULL),
+('驾驶机动车在道路上行驶，遇有前方车辆停车排队等候或者缓慢行驶时，不得借道超车或者占用对面车道、穿插等候的车辆。对吗？', '交通拥堵时的驾驶行为。', 'single', '["对", "错"]', 0, '在交通拥堵时，不得借道超车或者占用对面车道、穿插等候的车辆。', 'medium', 3, NULL);
 SELECT 'Database initialization completed successfully!' as message;

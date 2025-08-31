@@ -88,47 +88,36 @@ func LogOperation(c *gin.Context, action, resource, description string) {
 	
 	// 尝试从JWT中获取用户ID和角色
 	if userID, exists := c.Get("userId"); exists {
-		if role, roleExists := c.Get("role"); roleExists {
-			db := config.GetDB()
-			
-			// 确保userID是正确的类型
-			var uid uint
-			switch v := userID.(type) {
-			case uint:
-				uid = v
-			case float64:
-				uid = uint(v)
-			default:
-				// 如果类型转换失败，使用默认值
-				operator = "Unknown(类型错误)"
-				goto createLog
-			}
-			
-			if role == "admin" {
-				// 管理员用户，查询管理员表
-				var admin models.Admin
-				if err := db.Where("id = ?", uid).First(&admin).Error; err == nil {
-					operator = admin.Username
-				} else {
-					operator = fmt.Sprintf("Admin_%d", uid)
-				}
+		db := config.GetDB()
+		
+		// 确保userID是正确的类型
+		var uid uint
+		switch v := userID.(type) {
+		case uint:
+			uid = v
+		case float64:
+			uid = uint(v)
+		default:
+			// 如果类型转换失败，使用默认值
+			operator = "Unknown(类型错误)"
+			goto createLog
+		}
+		
+		var user models.User
+		if err := db.Where("id = ?", uid).First(&user).Error; err == nil {
+			if user.Role == "admin" {
+				operator = user.Username
 			} else {
-				// 普通用户，查询用户表
-				var user models.User
-				if err := db.Where("id = ?", uid).First(&user).Error; err == nil {
-					if user.Nickname != "" {
-						operator = user.Nickname
-					} else if user.OpenID != nil && len(*user.OpenID) >= 8 {
-						operator = "用户" + (*user.OpenID)[:8] // 使用OpenID前8位作为标识
-					} else {
-						operator = fmt.Sprintf("User_%d", uid)
-					}
+				if user.Nickname != "" {
+					operator = user.Nickname
+				} else if user.OpenID != "" && len(user.OpenID) >= 8 {
+					operator = "用户" + user.OpenID[:8] // 使用OpenID前8位作为标识
 				} else {
 					operator = fmt.Sprintf("User_%d", uid)
 				}
 			}
 		} else {
-			operator = "Unknown(无角色)"
+			operator = fmt.Sprintf("User_%d", uid)
 		}
 	} else {
 		operator = "Unknown(无用户ID)"

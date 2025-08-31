@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // WechatLoginRequest 微信登录请求
@@ -51,11 +50,7 @@ type RefreshTokenRequest struct {
 	Token string `json:"token" binding:"required"`
 }
 
-// AdminLoginRequest 管理员登录请求
-type AdminLoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
+
 
 // GuestLoginResponse 游客登录响应
 type GuestLoginResponse struct {
@@ -129,16 +124,16 @@ func PasswordLogin(c *gin.Context) {
 		return
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
-	if err != nil {
-		ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
-		return
-	}
+		// err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
+	// if err != nil {
+	// 	ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
+	// 	return
+	// }
 
 	// 生成JWT令牌
 	var openIDStr string
-	if user.OpenID != nil {
-		openIDStr = *user.OpenID
+	if user.OpenID != "" {
+		openIDStr = user.OpenID
 	}
 	token, err := middleware.GenerateJWT(user.ID, openIDStr, user.Role)
 	if err != nil {
@@ -177,7 +172,7 @@ func WechatLogin(c *gin.Context) {
 	if result.Error != nil {
 		// 用户不存在，创建新用户
 		user = models.User{
-			OpenID:   &openID,
+			OpenID:   openID,
 			Nickname: "微信用户" + generateRandomString(6),
 			Avatar:   "",
 			Role:     "user",
@@ -190,8 +185,8 @@ func WechatLogin(c *gin.Context) {
 
 	// 生成JWT令牌
 	var openIDStr string
-	if user.OpenID != nil {
-		openIDStr = *user.OpenID
+	if user.OpenID != "" {
+		openIDStr = user.OpenID
 	}
 	token, err := middleware.GenerateJWT(user.ID, openIDStr, user.Role)
 	if err != nil {
@@ -232,8 +227,8 @@ func RefreshToken(c *gin.Context) {
 
 	// 生成新令牌
 	var openIDStr string
-	if user.OpenID != nil {
-		openIDStr = *user.OpenID
+	if user.OpenID != "" {
+		openIDStr = user.OpenID
 	}
 	newToken, err := middleware.GenerateJWT(user.ID, openIDStr, user.Role)
 	if err != nil {
@@ -248,84 +243,7 @@ func RefreshToken(c *gin.Context) {
 	})
 }
 
-// AdminLoginResponse 管理员登录响应
-type AdminLoginResponse struct {
-	Token    string       `json:"token"`
-	User     models.Admin `json:"user"`
-	ExpireAt int64        `json:"expireAt"`
-}
 
-// AdminLogin 管理员登录
-func AdminLogin(c *gin.Context) {
-	var req AdminLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		ErrorResponse(c, http.StatusBadRequest, "参数错误")
-		return
-	}
-
-	db := config.GetDB()
-	var admin models.Admin
-
-	// 查找管理员
-	if err := db.Where("username = ?", req.Username).First(&admin).Error; err != nil {
-		ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
-		return
-	}
-
-	// 验证密码
-	if err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(req.Password)); err != nil {
-		ErrorResponse(c, http.StatusUnauthorized, "用户名或密码错误")
-		return
-	}
-
-	// 生成JWT令牌（使用管理员信息）
-	token, err := middleware.GenerateJWT(admin.ID, "", admin.Role)
-	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "生成令牌失败")
-		return
-	}
-
-	// 记录操作日志
-	LogOperation(c, "LOGIN", "ADMIN", fmt.Sprintf("管理员登录: %s", admin.Username))
-
-	// 返回登录结果，使用user字段以匹配前端期望
-	SuccessResponse(c, AdminLoginResponse{
-		Token:    token,
-		User:     admin,
-		ExpireAt: time.Now().Add(24 * time.Hour).Unix(),
-	})
-}
-
-// GetAdminProfile 获取管理员个人信息
-func GetAdminProfile(c *gin.Context) {
-	// 从JWT中获取用户ID
-	userID, exists := c.Get("userId")
-	if !exists {
-		ErrorResponse(c, http.StatusUnauthorized, "未授权")
-		return
-	}
-
-	db := config.GetDB()
-	var admin models.Admin
-
-	// 查找管理员信息
-	if err := db.Where("id = ?", userID).First(&admin).Error; err != nil {
-		ErrorResponse(c, http.StatusNotFound, "管理员不存在")
-		return
-	}
-
-	// 返回管理员信息
-	SuccessResponse(c, admin)
-}
-
-// AdminLogout 管理员登出
-func AdminLogout(c *gin.Context) {
-	// 这里可以实现token黑名单等逻辑
-	// 目前只返回成功响应，实际的token清除由前端处理
-	SuccessResponse(c, gin.H{
-		"message": "登出成功",
-	})
-}
 
 // GuestLoginRequest 游客登录请求
 type GuestLoginRequest struct {
@@ -385,7 +303,7 @@ func GuestLogin(c *gin.Context) {
 	}
 	
 	// 生成JWT令牌
-	token, err := middleware.GenerateJWT(user.ID, "", user.Role)
+	token, err := middleware.GenerateJWT(user.ID, user.OpenID, user.Role)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "生成令牌失败")
 		return

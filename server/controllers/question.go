@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ type CreateQuestionRequest struct {
 	CorrectAnswer int       `json:"correctAnswer" binding:"min=0"`
 	Explanation   string    `json:"explanation"`
 	Difficulty    string    `json:"difficulty"`
-	CategoryID    uuid.UUID `json:"categoryId" binding:"required"`
+	CategoryID    uint `json:"categoryId" binding:"required"`
 }
 
 // UpdateQuestionRequest 更新题目请求
@@ -35,12 +35,12 @@ type UpdateQuestionRequest struct {
 	CorrectAnswer *int       `json:"correctAnswer"`
 	Explanation   string     `json:"explanation"`
 	Difficulty    string     `json:"difficulty"`
-	CategoryID    *uuid.UUID `json:"categoryId"`
+	CategoryID    *uint `json:"categoryId"`
 }
 
 // BatchDeleteRequest 批量删除请求
 type BatchDeleteRequest struct {
-	IDs []uuid.UUID `json:"ids"`
+	IDs []uint `json:"ids"`
 }
 
 // GetQuestions 获取题目列表
@@ -462,7 +462,7 @@ type ImportQuestionItem struct {
 	Content    string    `json:"content" binding:"required"`
 	Type       string    `json:"type" binding:"required"`
 	Difficulty string    `json:"difficulty" binding:"required"`
-	CategoryID uuid.UUID `json:"category_id" binding:"required"`
+	CategoryID uint `json:"category_id" binding:"required"`
 	Options    []string  `json:"options"`
 	Answer     string    `json:"answer" binding:"required"`
 	Explanation string   `json:"explanation"`

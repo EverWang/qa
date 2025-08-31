@@ -28,3 +28,6 @@ dist-ssr
 /miniprogram-deploy
 /admin-web-deploy
 /go1.23.4.linux-amd64.tar.gz
+/data/mysql
+/playwright-report/
+/test-result/

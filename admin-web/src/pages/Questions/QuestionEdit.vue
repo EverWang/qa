@@ -295,7 +295,7 @@ const form = reactive({
   options: ['', ''],
   answer: '' as string | string[],
   explanation: '',
-  categoryId: ''
+  categoryId: null as number | null
 })
 
 // 表单验证规则
@@ -381,7 +381,7 @@ const previewQuestion = computed(() => ({
   category_id: form.categoryId,
   category: {
     id: form.categoryId,
-    name: categories.value.find(c => c.id.toString() === form.categoryId.toString())?.name || ''
+    name: categories.value.find(c => c.id === form.categoryId)?.name || ''
   },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
@@ -534,7 +534,7 @@ const handleSave = async () => {
     }
     
     // 验证分类ID
-    if (!form.categoryId || form.categoryId === '') {
+    if (!form.categoryId) {
       ElMessage.error('请选择题目分类')
       return
     }
@@ -592,7 +592,7 @@ const fetchQuestion = async (id: string) => {
     form.difficulty = question.difficulty
     form.options = question.options || []
     form.explanation = question.explanation || ''
-    form.categoryId = (question.categoryId || question.categoryId).toString()
+    form.categoryId = question.categoryId
     
     console.log('设置后的form.type:', form.type) // 调试日志
     console.log('设置后的form.options:', form.options) // 调试日志

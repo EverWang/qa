@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"qaminiprogram/models"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -61,10 +59,10 @@ func InitDatabase() {
 	log.Printf("MySQL database connected successfully (Host: %s:%s, Database: %s)", host, port, dbname)
 
 	// 自动迁移数据库表结构
-	migrateDatabase()
+	// migrateDatabase() // Removed as per user's request to rely on init.sql
 
 	// 初始化默认数据
-	initializeDefaultData()
+	// initializeDefaultData() // Removed as per user's request to rely on init.sql
 }
 
 /**
@@ -75,177 +73,5 @@ func GetDB() *gorm.DB {
 	return DB
 }
 
-/**
- * migrateDatabase 自动迁移数据库表结构
- * 检查并创建必要的数据库表
- */
-func migrateDatabase() {
-	log.Println("Starting database migration...")
 
-	// 自动迁移所有模型
-	err := DB.AutoMigrate(
-		&models.User{},
-		&models.Admin{},
-		&models.Category{},
-		&models.Question{},
-		&models.AnswerRecord{},
-		&models.MistakeBook{},
-		&models.SystemSetting{},
-		&models.OperationLog{},
-	)
 
-	if err != nil {
-		log.Printf("Database migration failed: %v", err)
-	} else {
-		log.Println("Database migration completed successfully")
-	}
-}
-
-/**
- * initializeDefaultData 初始化默认数据
- * 创建默认的管理员账号、系统设置等
- */
-func initializeDefaultData() {
-	log.Println("Initializing default data...")
-
-	// 检查是否已存在管理员
-	var adminCount int64
-	DB.Model(&models.Admin{}).Count(&adminCount)
-	if adminCount == 0 {
-		// 创建默认管理员账号
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Printf("Failed to hash admin password: %v", err)
-		} else {
-			admin := models.Admin{
-				Username:     "admin",
-				PasswordHash: string(passwordHash),
-				Email:        "admin@shuashuati.com",
-				Role:         "admin",
-			}
-
-			if err := DB.Create(&admin).Error; err != nil {
-				log.Printf("Failed to create default admin: %v", err)
-			} else {
-				log.Println("Default admin user created successfully (username: admin, password: 123456)")
-			}
-		}
-	}
-
-	// 检查是否已存在admin用户在User表中
-	var adminUserCount int64
-	DB.Model(&models.User{}).Where("username = ?", "admin").Count(&adminUserCount)
-	if adminUserCount == 0 {
-		// 创建admin用户在User表中
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Printf("Failed to hash admin user password: %v", err)
-		} else {
-			adminUser := models.User{
-				Username: "admin",
-				Email:    "admin@shuashuati.com",
-				Password: string(hashedPassword),
-				Nickname: "系统管理员",
-				Role:     "admin",
-				Status:   "active",
-			}
-
-			if err := DB.Create(&adminUser).Error; err != nil {
-				log.Printf("Failed to create admin user: %v", err)
-			} else {
-				log.Println("Default admin user created in User table successfully")
-			}
-		}
-	}
-
-	// 检查是否已存在测试用户
-	var userCount int64
-	DB.Model(&models.User{}).Where("username = ?", "testuser").Count(&userCount)
-	if userCount == 0 {
-		// 创建默认测试用户
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Printf("Failed to hash test user password: %v", err)
-		} else {
-			testUser := models.User{
-				Username: "testuser",
-				Email:    "testuser@shuashuati.com",
-				Password: string(hashedPassword),
-				Nickname: "测试用户",
-				Role:     "user",
-				Status:   "active",
-			}
-
-			if err := DB.Create(&testUser).Error; err != nil {
-				log.Printf("Failed to create test user: %v", err)
-			} else {
-				log.Println("Default test user created successfully (username: testuser, password: 123456)")
-			}
-		}
-	}
-
-	// 检查是否已存在系统设置
-	var settingsCount int64
-	DB.Model(&models.SystemSetting{}).Count(&settingsCount)
-	if settingsCount == 0 {
-		// 创建默认系统设置
-		basicSettings := models.SystemSetting{
-			Key:   "basic",
-			Value: `{"systemName":"刷刷题","systemDescription":"专业的在线刷题平台","systemVersion":"1.0.0","contactEmail":"admin@shuashuati.com","systemStatus":"normal","maintenanceNotice":""}`,
-		}
-		quizSettings := models.SystemSetting{
-			Key:   "quiz",
-			Value: `{"dailyLimit":0,"timeLimit":0,"enablePoints":true,"correctPoints":1,"wrongPoints":0,"quizModes":["random","category"],"showExplanation":"afterAnswer"}`,
-		}
-
-		if err := DB.Create(&basicSettings).Error; err != nil {
-			log.Printf("Failed to create basic settings: %v", err)
-		}
-		if err := DB.Create(&quizSettings).Error; err != nil {
-			log.Printf("Failed to create quiz settings: %v", err)
-		}
-		log.Println("Default system settings created successfully")
-	}
-
-	// 检查是否已存在操作日志
-	var logCount int64
-	DB.Model(&models.OperationLog{}).Count(&logCount)
-	if logCount == 0 {
-		// 创建一些测试操作日志
-		testLogs := []models.OperationLog{
-			{
-				Operator:    "admin",
-				Action:      "login",
-				Resource:    "系统",
-				Description: "管理员登录系统",
-				IP:          "127.0.0.1",
-				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-			},
-			{
-				Operator:    "admin",
-				Action:      "create",
-				Resource:    "题目",
-				Description: "创建题目：测试题目",
-				IP:          "127.0.0.1",
-				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-			},
-			{
-				Operator:    "admin",
-				Action:      "update",
-				Resource:    "分类",
-				Description: "更新分类信息",
-				IP:          "127.0.0.1",
-				UserAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-			},
-		}
-
-		for _, testLog := range testLogs {
-			if err := DB.Create(&testLog).Error; err != nil {
-				log.Printf("Failed to create test operation log: %v", err)
-			}
-		}
-		log.Println("Test operation logs created successfully")
-	}
-
-	log.Println("Default data initialization completed")
-}

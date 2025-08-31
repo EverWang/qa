@@ -71,7 +71,7 @@ func SetupRoutes(r *gin.Engine) {
 		admin := api.Group("/admin")
 		{
 			// 管理员认证（公开路由）
-		admin.POST("/login", controllers.AdminLogin)
+		admin.POST("/login", controllers.PasswordLogin)
 		}
 
 		// 需要管理员认证的路由
@@ -79,9 +79,7 @@ func SetupRoutes(r *gin.Engine) {
 		adminAuth.Use(middleware.JWTAuth())
 		adminAuth.Use(middleware.AdminAuth())
 		{
-			// 管理员个人信息
-			adminAuth.GET("/profile", controllers.GetAdminProfile)
-			adminAuth.POST("/logout", controllers.AdminLogout)
+			
 			
 			// 用户管理
 			adminAuth.GET("/users", controllers.GetUsers)

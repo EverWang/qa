@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
   const login = async (credentials: LoginRequest): Promise<boolean> => {
     try {
       loading.value = true
-      const response = await api.post('/api/v1/admin/login', credentials)
+      const response = await api.post('/api/v1/admin/login', { ...credentials, type: 'password' })
       
       // 后端返回格式: {code: 200, message: 'success', data: {token, user}}
       const { token: newToken, user: userInfo } = response.data.data
@@ -74,26 +74,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 登出方法
-  const logout = async () => {
-    try {
-      // 调用后端登出接口
-      await api.post('/api/v1/admin/logout')
-    } catch (error) {
-      console.error('登出请求失败:', error)
-    } finally {
-      // 清除本地数据
-      token.value = null
-      user.value = null
-      localStorage.removeItem('admin_token')
-      localStorage.removeItem('admin_user')
-      delete api.defaults.headers.common['Authorization']
-    }
+  const logout = () => {
+    // 清除本地数据
+    token.value = null
+    user.value = null
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+    delete api.defaults.headers.common['Authorization']
   }
 
   // 获取用户信息
   const fetchUserInfo = async (): Promise<boolean> => {
     try {
-      const response = await api.get('/api/v1/admin/profile')
+      const response = await api.get('/api/v1/user/profile')
       // 后端返回格式: {code: 200, message: 'success', data: userInfo}
       user.value = response.data.data
       localStorage.setItem('admin_user', JSON.stringify(response.data.data))
@@ -119,19 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 检查token有效性
-  const checkTokenValidity = async (): Promise<boolean> => {
-    if (!token.value) return false
-    
-    try {
-      await api.get('/api/v1/admin/check-token')
-      return true
-    } catch (error) {
-      console.error('Token验证失败:', error)
-      await logout()
-      return false
-    }
-  }
+  
 
   return {
     // 状态
@@ -145,7 +126,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     fetchUserInfo,
-    initializeAuth,
-    checkTokenValidity
+    initializeAuth
   }
 })
