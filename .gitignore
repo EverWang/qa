@@ -31,3 +31,4 @@ dist-ssr
 /data/mysql
 /playwright-report/
 /test-result/
+/server/main-linux
